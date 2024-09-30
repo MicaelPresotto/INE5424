@@ -116,15 +116,15 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool enabled = Traits<System>::multithread;
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
-    static const int priority_inversion_protocol = CEILING;
+    static const int priority_inversion_protocol = NONE;
 
-    typedef RM Criterion;
+    typedef EDF Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
 template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 {
-    static const bool debugged = Traits<Thread>::trace_idle || hysterically_debugged;
+    static const bool debugged = Traits<Thread>::trace_idle || true;
 };
 
 template<> struct Traits<Synchronizer>: public Traits<Build>
