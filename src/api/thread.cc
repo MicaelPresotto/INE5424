@@ -411,13 +411,26 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         }
         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
 
-        db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
+
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
+        
+        unsigned long long job_start = next->criterion().time(next->statistics().job_start);
+        unsigned long long job_released = next->criterion().time(next->statistics().job_release);
+        unsigned long long deadline = next->criterion().period();
+        unsigned long long percentage = 0;
+        unsigned long long elapsed_time = job_start - job_released;
+        if (elapsed_time && deadline) percentage = elapsed_time / deadline;
+        db<Thread>(TRC) << "Job start = " << next->criterion().time(next->statistics().job_start) << ", Release = " << next->criterion().time(next->statistics().job_release) << endl;
+        db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
+        db<Thread>(TRC) << "Deadline é " << deadline << endl;
+        db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
+        db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
+        db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
     }
 }
 
