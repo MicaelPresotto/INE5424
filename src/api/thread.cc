@@ -3,6 +3,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <time.h>
 
 __BEGIN_SYS
 
@@ -411,7 +412,6 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         }
         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
 
-
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
         // passing the volatile to switch_constext forces it to push prev onto the stack,
@@ -419,12 +419,14 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // parameters on the stack anyway).
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
         
+        next->statistics().job_start = Alarm::elapsed(); // EGL job start = current time
+
         unsigned long long job_start = next->criterion().time(next->statistics().job_start);
         unsigned long long job_released = next->criterion().time(next->statistics().job_release);
         unsigned long long deadline = next->criterion().period();
-        unsigned long long percentage = 0;
+        double percentage = 0;
         unsigned long long elapsed_time = job_start - job_released;
-        if (elapsed_time && deadline) percentage = elapsed_time / deadline;
+        if (elapsed_time && deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline; // EGL calc percentage
         db<Thread>(TRC) << "Job start = " << next->criterion().time(next->statistics().job_start) << ", Release = " << next->criterion().time(next->statistics().job_release) << endl;
         db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
         db<Thread>(TRC) << "Deadline é " << deadline << endl;
