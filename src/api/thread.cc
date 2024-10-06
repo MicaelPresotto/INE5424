@@ -4,6 +4,7 @@
 #include <system.h>
 #include <process.h>
 #include <time.h>
+#include <utility/math.h>
 
 __BEGIN_SYS
 
@@ -422,17 +423,43 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         next->statistics().job_start = Alarm::elapsed(); // EGL job start = current time
 
         unsigned long long job_start = next->criterion().time(next->statistics().job_start);
-        unsigned long long job_released = next->criterion().time(next->statistics().job_release);
+        unsigned long long job_release = next->criterion().time(next->statistics().job_release);
         unsigned long long deadline = next->criterion().period();
         double percentage = 0;
-        unsigned long long elapsed_time = job_start - job_released;
-        if (elapsed_time && deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline; // EGL calc percentage
+        unsigned long long elapsed_time = job_start - job_release;
+        
+        if (deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline; // EGL calc percentage
+        
+        // long long calculate_frequency() {
+        //     double t = (100.0 * (current_time - current_task->creation_time)) / (current_task->period); // Calculate the proportion of elapsed time
+        //     const double exponential_factor = 0.978161032; // Exponential factor for frequency adjustment
+        //     long long ret = min_frequency  ((max_frequency - min_frequency) * (1.0 - Math::pow(exponential_factor, t))); // Calculate frequency
+
+        //     // Set frequency to maximum if it exceeds 85% of max frequency
+        //     if (ret >= 0.85 * max_frequency) return max_frequency; 
+        //     return ret;
+        // }
+        auto calculate_frequency = [=]() -> long long {
+            // percentage
+            // double t = (100.0 * (current_time - current_task->creation_time)) / (current_task->period); // Calcula a proporção de tempo decorrido
+            const double exponential_factor = 0.978161032; // Fator exponencial para ajuste da frequência
+            long long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage))); // Calcula a frequência
+
+            // Define a frequência máxima se exceder 85% da frequência máxima
+            if (ret >= 0.85 *  CPU::max_clock()) return  CPU::max_clock();
+            return ret;
+        };
+
+
         db<Thread>(TRC) << "Job start = " << next->criterion().time(next->statistics().job_start) << ", Release = " << next->criterion().time(next->statistics().job_release) << endl;
         db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
         db<Thread>(TRC) << "Deadline é " << deadline << endl;
         db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
         db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
         db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
+        db<Thread>(TRC) << "Frequência " << calculate_frequency() << endl;
+        db<Thread>(TRC) << "Max Frequência " << CPU::max_clock() << endl;
+        db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl;
     }
 }
 

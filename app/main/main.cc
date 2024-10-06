@@ -23,11 +23,13 @@ void foo2() {
 
 
 int main() {
+    cout << "Main " << Thread::self() << endl;
+    
     RT_Thread* pt1 = new RT_Thread(&foo1, 10e5);
     RT_Thread* pt2 = new RT_Thread(&foo2, 5e5);
 
-    cout << "Deadline pt1: " << pt1->criterion().deadline() << endl;
-    cout << "Deadline pt2: " << pt2->criterion().deadline() << endl;
+    // cout << "Deadline pt1: " << pt1->criterion().deadline() << endl;
+    // cout << "Deadline pt2: " << pt2->criterion().deadline() << endl;
     Delay d(10e6);
 
     delete pt1;
