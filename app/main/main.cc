@@ -10,14 +10,14 @@ OStream cout;
 
 void foo1() {
     Delay d(10e5 - 5); // EGL add delay to get a precise execution time
-    cout << Thread::self() << endl;
+    cout << Thread::self() << " " << CPU::clock() << endl;
     cout << "Mensagem do foo1" << endl;
 }
 
 
 void foo2() {
     Delay d(5e5 - 5); // EGL add delay to get a precise execution time
-    cout << Thread::self() << endl;
+    cout << Thread::self() << " " << CPU::clock() << endl;
     cout << "Mensagem do foo2" << endl;
 }
 

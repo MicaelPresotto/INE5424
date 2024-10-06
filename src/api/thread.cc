@@ -439,17 +439,15 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         //     if (ret >= 0.85 * max_frequency) return max_frequency; 
         //     return ret;
         // }
-        auto calculate_frequency = [=]() -> long long {
-            // percentage
-            // double t = (100.0 * (current_time - current_task->creation_time)) / (current_task->period); // Calcula a proporção de tempo decorrido
-            const double exponential_factor = 0.978161032; // Fator exponencial para ajuste da frequência
-            long long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage))); // Calcula a frequência
-
-            // Define a frequência máxima se exceder 85% da frequência máxima
+        auto calculate_frequency = [=]() -> unsigned long {
+            const double exponential_factor = 0.978161032;
+            unsigned long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage)));
             if (ret >= 0.85 *  CPU::max_clock()) return  CPU::max_clock();
             return ret;
         };
 
+        unsigned long new_freq = calculate_frequency();
+        CPU::clock(new_freq);
 
         db<Thread>(TRC) << "Job start = " << next->criterion().time(next->statistics().job_start) << ", Release = " << next->criterion().time(next->statistics().job_release) << endl;
         db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
@@ -457,9 +455,11 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
         db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
         db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
-        db<Thread>(TRC) << "Frequência " << calculate_frequency() << endl;
+        db<Thread>(TRC) << "Frequência esperada " << new_freq << endl;
+        db<Thread>(TRC) << "Frequência atual    " << CPU::clock() << endl;
         db<Thread>(TRC) << "Max Frequência " << CPU::max_clock() << endl;
-        db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl;
+        db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl << endl;
+
     }
 }
 
