@@ -428,20 +428,12 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         double percentage = 0;
         unsigned long long elapsed_time = job_start - job_release;
         
-        if (deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline; // EGL calc percentage
+        if (elapsed_time && deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline;
         
-        // long long calculate_frequency() {
-        //     double t = (100.0 * (current_time - current_task->creation_time)) / (current_task->period); // Calculate the proportion of elapsed time
-        //     const double exponential_factor = 0.978161032; // Exponential factor for frequency adjustment
-        //     long long ret = min_frequency  ((max_frequency - min_frequency) * (1.0 - Math::pow(exponential_factor, t))); // Calculate frequency
-
-        //     // Set frequency to maximum if it exceeds 85% of max frequency
-        //     if (ret >= 0.85 * max_frequency) return max_frequency; 
-        //     return ret;
-        // }
-        auto calculate_frequency = [=]() -> unsigned long {
-            const double exponential_factor = 0.978161032;
-            unsigned long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage)));
+        auto calculate_frequency = [=]() -> long long {
+            const double exponential_factor = 0.978161032; // Fator exponencial para ajuste da frequência
+            long long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage)));
+            // Define a frequência máxima se exceder 85% da frequência máxima
             if (ret >= 0.85 *  CPU::max_clock()) return  CPU::max_clock();
             return ret;
         };

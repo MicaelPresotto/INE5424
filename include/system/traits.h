@@ -111,6 +111,7 @@ class RM;
 class DM;
 class LM;
 class EDF;
+class EDFEnergyAwaring;
 class LLF;
 class GRR;
 class Fixed_CPU;

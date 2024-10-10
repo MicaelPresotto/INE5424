@@ -261,6 +261,16 @@ public:
     void handle(Event event);
 };
 
+class EDFEnergyAwaring : public EDF {
+
+public:
+
+    EDFEnergyAwaring(int p = APERIODIC) : EDF(p) {}
+    EDFEnergyAwaring(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
+
+    void handle(Event event);
+};
+
 
 // Least Laxity First
 class LLF: public RT_Common

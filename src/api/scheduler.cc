@@ -76,6 +76,31 @@ void RT_Common::handle(Event event) {
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
 }
 
+void EDFEnergyAwaring::handle(Event event) {
+    db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
+    if(event & CREATE) {
+        db<Thread>(TRC) << "CREATE";
+    }
+    if(event & FINISH) {
+        db<Thread>(TRC) << "FINISH";
+    }
+    if(event & ENTER) {
+        db<Thread>(TRC) << "ENTER";
+    }
+    if(event & LEAVE) {
+        db<Thread>(TRC) << "LEAVE";
+    }
+    if(periodic() && (event & JOB_RELEASE)) {
+        db<Thread>(TRC) << "RELEASE";
+        _statistics.job_start = 0;
+    }
+    if(periodic() && (event & JOB_FINISH)) {
+        db<Thread>(TRC) << "WAIT";
+    }
+
+    db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
+}
+
 
 template <typename ... Tn>
 FCFS::FCFS(int p, Tn & ... an): Priority((p == IDLE) ? IDLE : RT_Common::elapsed()) {}
