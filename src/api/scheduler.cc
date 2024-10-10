@@ -92,7 +92,8 @@ void EDFEnergyAwaring::handle(Event event) {
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
-        _statistics.job_start = 0;
+        _statistics.job_release = elapsed();
+
     }
     if(periodic() && (event & JOB_FINISH)) {
         db<Thread>(TRC) << "WAIT";
