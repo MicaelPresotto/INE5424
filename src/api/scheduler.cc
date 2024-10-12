@@ -114,16 +114,16 @@ void EDFEnergyAwaring::updateFrequency() {
     unsigned long new_freq = calculateFrequency(percentage);
     CPU::clock(new_freq);
 
-    db<Thread>(TRC) << "Job start = " << time(_statistics.job_start) << ", Release = " << time(_statistics.job_release) << endl;
-    db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
-    db<Thread>(TRC) << "Deadline é " << deadline << endl;
-    db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
-    // db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
-    // db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
-    db<Thread>(TRC) << "Frequência esperada " << new_freq << endl;
-    db<Thread>(TRC) << "Frequência atual    " << CPU::clock() << endl;
-    db<Thread>(TRC) << "Max Frequência " << CPU::max_clock() << endl;
-    db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl << endl;
+    // db<Thread>(TRC) << "Job start = " << time(_statistics.job_start) << ", Release = " << time(_statistics.job_release) << endl;
+    // db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
+    // db<Thread>(TRC) << "Deadline é " << deadline << endl;
+    // db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
+    // // db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
+    // // db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
+    // db<Thread>(TRC) << "Frequência esperada " << new_freq << endl;
+    // db<Thread>(TRC) << "Frequência atual    " << CPU::clock() << endl;
+    // db<Thread>(TRC) << "Max Frequência " << CPU::max_clock() << endl;
+    // db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl << endl;
 }
 
 long long EDFEnergyAwaring::calculateFrequency(double percentage) {

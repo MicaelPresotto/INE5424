@@ -9,16 +9,21 @@ OStream cout;
 
 
 void foo1() {
-    Delay d(10e5 - 5); // EGL add delay to get a precise execution time
-    cout << Thread::self() << " " << CPU::clock() << endl;
-    cout << "Mensagem do foo1" << endl;
+    Delay d(10e5 - 5);
+    cout << "A thread 1 está executando, ";
+    cout << (100 * CPU::clock()) << ", " << CPU::max_clock() << ", ";
+    cout << "clock da CPU = " << CPU::clock() << " (" << (100 * CPU::clock()) / CPU::max_clock() << "%), ";
+    cout << endl;
 }
 
 
 void foo2() {
-    Delay d(5e5 - 5); // EGL add delay to get a precise execution time
-    cout << Thread::self() << " " << CPU::clock() << endl;
-    cout << "Mensagem do foo2" << endl;
+    Delay d(5e5 - 5);
+    cout << "A thread 2 está executando, ";
+    cout << "clock da CPU = " << CPU::clock() << " (" << (100 * CPU::clock()) / CPU::max_clock() << "%), ";
+    cout << endl;
+    // cout << "deadlines perdidos = " << 
+    // cout << "Mensagem do foo2" << endl;
 }
 
 
