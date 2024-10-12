@@ -125,6 +125,7 @@ public:
     bool periodic() { return false; }
 
     volatile Statistics & statistics() { return _statistics; }
+    bool isEnergyAwaring() { return false; }
 
 protected:
     void handle(Event event) {}
@@ -269,6 +270,9 @@ public:
     EDFEnergyAwaring(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
 
     void handle(Event event);
+    bool isEnergyAwaring() { return true; }
+    void updateFrequency();
+    long long calculateFrequency(double frequency);
 };
 
 

@@ -421,37 +421,8 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
         
         next->statistics().job_start = Alarm::elapsed(); // EGL job start = current time
-
-        unsigned long long job_start = next->criterion().time(next->statistics().job_start);
-        unsigned long long job_release = next->criterion().time(next->statistics().job_release);
-        unsigned long long deadline = next->criterion().period();
-        double percentage = 0;
-        unsigned long long elapsed_time = job_start - job_release;
-        
-        if (elapsed_time && deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline;
-        
-        auto calculate_frequency = [=]() -> long long {
-            const double exponential_factor = 0.978161032; // Fator exponencial para ajuste da frequência
-            long long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage)));
-            // Define a frequência máxima se exceder 85% da frequência máxima
-            if (ret >= 0.85 *  CPU::max_clock()) return  CPU::max_clock();
-            return ret;
-        };
-
-        unsigned long new_freq = calculate_frequency();
-        CPU::clock(new_freq);
-
-        db<Thread>(TRC) << "Job start = " << next->criterion().time(next->statistics().job_start) << ", Release = " << next->criterion().time(next->statistics().job_release) << endl;
-        db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
-        db<Thread>(TRC) << "Deadline é " << deadline << endl;
-        db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
-        db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
-        db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
-        db<Thread>(TRC) << "Frequência esperada " << new_freq << endl;
-        db<Thread>(TRC) << "Frequência atual    " << CPU::clock() << endl;
-        db<Thread>(TRC) << "Max Frequência " << CPU::max_clock() << endl;
-        db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl << endl;
-
+        if (next->criterion().isEnergyAwaring())
+            next->criterion().updateFrequency();
     }
 }
 

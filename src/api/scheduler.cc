@@ -102,6 +102,38 @@ void EDFEnergyAwaring::handle(Event event) {
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
 }
 
+void EDFEnergyAwaring::updateFrequency() {
+    unsigned long long job_start = time(_statistics.job_start);
+    unsigned long long job_release = time(_statistics.job_release);
+    unsigned long long deadline = period();
+    double percentage = 0;
+    unsigned long long elapsed_time = job_start - job_release;
+    
+    if (elapsed_time && deadline) percentage = (100.0f*(double)elapsed_time) / (double)deadline;
+
+    unsigned long new_freq = calculateFrequency(percentage);
+    CPU::clock(new_freq);
+
+    db<Thread>(TRC) << "Job start = " << time(_statistics.job_start) << ", Release = " << time(_statistics.job_release) << endl;
+    db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
+    db<Thread>(TRC) << "Deadline é " << deadline << endl;
+    db<Thread>(TRC) << "Passou " << percentage << "% do começo" << endl;
+    // db<Thread>(TRC) << "Mudando a frequência para 1GHz" << endl;
+    // db<Thread>(TRC) << "Quantidade de threads rodando no momento = " << _thread_count << endl;
+    db<Thread>(TRC) << "Frequência esperada " << new_freq << endl;
+    db<Thread>(TRC) << "Frequência atual    " << CPU::clock() << endl;
+    db<Thread>(TRC) << "Max Frequência " << CPU::max_clock() << endl;
+    db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl << endl;
+}
+
+long long EDFEnergyAwaring::calculateFrequency(double percentage) {
+    const double exponential_factor = 0.978161032; // Fator exponencial para ajuste da frequência
+    long long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage)));
+    // Define a frequência máxima se exceder 85% da frequência máxima
+    if (ret >= 0.85 * CPU::max_clock()) return  CPU::max_clock();
+    return ret;
+}
+
 
 template <typename ... Tn>
 FCFS::FCFS(int p, Tn & ... an): Priority((p == IDLE) ? IDLE : RT_Common::elapsed()) {}
