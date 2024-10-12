@@ -126,6 +126,7 @@ public:
 
     volatile Statistics & statistics() { return _statistics; }
     bool isEnergyAwaring() { return false; }
+    void updateFrequency(){};
 
 protected:
     void handle(Event event) {}
