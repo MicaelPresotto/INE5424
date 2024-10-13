@@ -406,6 +406,10 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         next->_state = RUNNING;
 
         db<Thread>(TRC) << "Thread::dispatch(prev=" << prev << ",next=" << next << ")" << endl;
+        // if (prev->criterion() != IDLE) {
+        //     db<Thread>(TRC) << prev->criterion().time(prev->criterion().statistics().job_release) + prev->criterion().deadline() << " " << prev->criterion().time(prev->criterion().statistics().job_release) << " " << prev->criterion().time(Alarm::elapsed()) << endl;
+        // }
+        
         if(Traits<Thread>::debugged && Traits<Debug>::info) {
             CPU::Context tmp;
             tmp.save();
@@ -421,8 +425,8 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
         
         next->statistics().job_start = Alarm::elapsed(); // EGL job start = current time
-        if (next->criterion().isEnergyAwaring())
-            next->criterion().updateFrequency();
+        next->criterion().updateFrequency();
+        db<Thread>(TRC) << prev->criterion().time(Alarm::elapsed()) << endl << endl;
     }
 }
 

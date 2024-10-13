@@ -20,34 +20,34 @@ void RT_Common::handle(Event event) {
     if(event & CREATE) {
         db<Thread>(TRC) << "CREATE";
 
-        _statistics.thread_creation = elapsed();
-        _statistics.job_released = false;
+        // _statistics.thread_creation = elapsed();
+        // _statistics.job_released = false;
     }
     if(event & FINISH) {
         db<Thread>(TRC) << "FINISH";
 
-        _statistics.thread_destruction = elapsed();
+        // _statistics.thread_destruction = elapsed();
     }
     if(event & ENTER) {
         db<Thread>(TRC) << "ENTER";
 
-        _statistics.thread_last_dispatch = elapsed();
+        // _statistics.thread_last_dispatch = elapsed();
     }
     if(event & LEAVE) {
-        Tick cpu_time = elapsed() - _statistics.thread_last_dispatch;
+        // Tick cpu_time = elapsed() - _statistics.thread_last_dispatch;
 
         db<Thread>(TRC) << "LEAVE";
 
-        _statistics.thread_last_preemption = elapsed();
-        _statistics.thread_execution_time += cpu_time;
+        // _statistics.thread_last_preemption = elapsed();
+        // _statistics.thread_execution_time += cpu_time;
 //        if(_statistics.job_released) {
-            _statistics.job_utilization += cpu_time;
+            // _statistics.job_utilization += cpu_time;
 //        }
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
 
-        _statistics.job_released = true;
+        // _statistics.job_released = true;
         _statistics.job_release = elapsed();
         _statistics.job_start = 0;
         _statistics.job_utilization = 0;
@@ -56,10 +56,10 @@ void RT_Common::handle(Event event) {
     if(periodic() && (event & JOB_FINISH)) {
         db<Thread>(TRC) << "WAIT";
 
-        _statistics.job_released = false;
-        _statistics.job_finish = elapsed();
+        // _statistics.job_released = false;
+        // _statistics.job_finish = elapsed();
         _statistics.jobs_finished++;
-//        _statistics.job_utilization += elapsed() - _statistics.thread_last_dispatch;
+    //    _statistics.job_utilization += elapsed() - _statistics.thre   ad_last_dispatch;
     }
     if(event & COLLECT) {
         db<Thread>(TRC) << "|COLLECT";
@@ -76,7 +76,7 @@ void RT_Common::handle(Event event) {
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
 }
 
-void EDFEnergyAwaring::handle(Event event) {
+void EDFEnergyAwareness::handle(Event event) {
     db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
     if(event & CREATE) {
         db<Thread>(TRC) << "CREATE";
@@ -100,9 +100,12 @@ void EDFEnergyAwaring::handle(Event event) {
     }
 
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
+    _statistics.lost_deadlines = 1;
+    if(periodic() && (event & JOB_RELEASE))
+        _priority = elapsed() + _deadline;
 }
 
-void EDFEnergyAwaring::updateFrequency() {
+void EDFEnergyAwareness::updateFrequency() {
     unsigned long long job_start = time(_statistics.job_start);
     unsigned long long job_release = time(_statistics.job_release);
     unsigned long long deadline = period();
@@ -126,7 +129,7 @@ void EDFEnergyAwaring::updateFrequency() {
     // db<Thread>(TRC) << "Min Frequência " << CPU::min_clock() << endl << endl;
 }
 
-long long EDFEnergyAwaring::calculateFrequency(double percentage) {
+long long EDFEnergyAwareness::calculateFrequency(double percentage) {
     const double exponential_factor = 0.978161032; // Fator exponencial para ajuste da frequência
     long long ret = CPU::min_clock() + (( CPU::max_clock() - CPU::min_clock()) * (1.0 - Math::pow(exponential_factor, percentage)));
     // Define a frequência máxima se exceder 85% da frequência máxima

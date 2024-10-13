@@ -75,45 +75,55 @@ public:
     static const bool dynamic = false;
     static const bool preemptive = true;
 
-    // Runtime Statistics (for policies that don't use any; that's why its a union)
-    union Dummy_Statistics {  // for Traits<System>::monitored = false
-        // Thread related statistics
-        Tick thread_creation;                   // tick in which the thread was created
-        Tick thread_destruction;                // tick in which the thread was destroyed
-        Tick thread_execution_time;             // accumulated execution time (in ticks)
-        Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
-        Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
+    // // Runtime Statistics (for policies that don't use any; that's why its a union)
+    // union Dummy_Statistics {  // for Traits<System>::monitored = false
+    //     // Thread related statistics
+    //     Tick thread_creation;                   // tick in which the thread was created
+    //     Tick thread_destruction;                // tick in which the thread was destroyed
+    //     Tick thread_execution_time;             // accumulated execution time (in ticks)
+    //     Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
+    //     Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
 
-        // Job related statistics
-        bool job_released;
-        Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
-        Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
-        Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
-        Tick job_utilization;                   // accumulated execution time (in ticks)
-        unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
-        unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
+    //     // Job related statistics
+    //     bool job_released;
+    //     Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
+    //     Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
+    //     Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
+    //     Tick job_utilization;                   // accumulated execution time (in ticks)
+    //     unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
+    //     unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
+    // };
+
+    // struct Real_Statistics {  // for Traits<System>::monitored = true
+    //     // Thread related statistics
+    //     Tick thread_creation;                   // tick in which the thread was created
+    //     Tick thread_destruction;                // tick in which the thread was destroyed
+    //     Tick thread_execution_time;             // accumulated execution time (in ticks)
+    //     Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
+    //     Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
+
+    //     // Job related statistics
+    //     bool job_released;
+    //     Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
+    //     Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
+    //     Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
+    //     Tick job_utilization;                   // accumulated execution time (in ticks)
+    //     unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
+    //     unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
+    // };
+
+    struct EnergyAwarenessStatistics {  
+        Tick job_release;
+        Tick job_start;
+        Tick job_utilization;
+        unsigned int jobs_released;
+        unsigned int jobs_finished;
+        unsigned int lost_deadlines;
     };
 
-    struct Real_Statistics {  // for Traits<System>::monitored = true
-        // Thread related statistics
-        Tick thread_creation;                   // tick in which the thread was created
-        Tick thread_destruction;                // tick in which the thread was destroyed
-        Tick thread_execution_time;             // accumulated execution time (in ticks)
-        Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
-        Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
-
-        // Job related statistics
-        bool job_released;
-        Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
-        Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
-        Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
-        Tick job_utilization;                   // accumulated execution time (in ticks)
-        unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
-        unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
-    };
-
-    typedef IF<Traits<System>::monitored, Real_Statistics, Dummy_Statistics>::Result Statistics;
-
+    // typedef IF<Traits<System>::monitored, Real_Statistics, Dummy_Statistics>::Result Statistics;
+    typedef EnergyAwarenessStatistics Statistics;
+    
 protected:
     Scheduling_Criterion_Common() {}
 
@@ -125,7 +135,6 @@ public:
     bool periodic() { return false; }
 
     volatile Statistics & statistics() { return _statistics; }
-    bool isEnergyAwaring() { return false; }
     void updateFrequency(){};
 
 protected:
@@ -263,15 +272,14 @@ public:
     void handle(Event event);
 };
 
-class EDFEnergyAwaring : public EDF {
+class EDFEnergyAwareness : public EDF {
 
 public:
 
-    EDFEnergyAwaring(int p = APERIODIC) : EDF(p) {}
-    EDFEnergyAwaring(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
+    EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
+    EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
 
     void handle(Event event);
-    bool isEnergyAwaring() { return true; }
     void updateFrequency();
     long long calculateFrequency(double frequency);
 };
