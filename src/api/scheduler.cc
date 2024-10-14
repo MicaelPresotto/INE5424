@@ -92,17 +92,23 @@ void EDFEnergyAwareness::handle(Event event) {
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
+        if (!_statistics.job_released) {
+            _statistics.job_released = true;
+            _statistics.jobs_released++;
+        }
+        _priority = elapsed() + _deadline;
         _statistics.job_release = elapsed();
 
     }
     if(periodic() && (event & JOB_FINISH)) {
+        if (_statistics.job_released) {
+            _statistics.jobs_finished++;
+        }
+        _statistics.job_released = false;
         db<Thread>(TRC) << "WAIT";
     }
 
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
-    _statistics.lost_deadlines = 1;
-    if(periodic() && (event & JOB_RELEASE))
-        _priority = elapsed() + _deadline;
 }
 
 void EDFEnergyAwareness::updateFrequency() {
@@ -116,7 +122,7 @@ void EDFEnergyAwareness::updateFrequency() {
 
     unsigned long new_freq = calculateFrequency(percentage);
     CPU::clock(new_freq);
-
+    db<Thread>(TRC) << _statistics.jobs_released << " " << _statistics.jobs_finished << " " << _statistics.jobs_released - _statistics.jobs_finished << endl;
     // db<Thread>(TRC) << "Job start = " << time(_statistics.job_start) << ", Release = " << time(_statistics.job_release) << endl;
     // db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
     // db<Thread>(TRC) << "Deadline é " << deadline << endl;

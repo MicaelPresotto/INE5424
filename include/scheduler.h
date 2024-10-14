@@ -116,9 +116,9 @@ public:
         Tick job_release;
         Tick job_start;
         Tick job_utilization;
-        unsigned int jobs_released;
-        unsigned int jobs_finished;
-        unsigned int lost_deadlines;
+        bool job_released = false;
+        unsigned int jobs_released = 0;
+        unsigned int jobs_finished = 0;
     };
 
     // typedef IF<Traits<System>::monitored, Real_Statistics, Dummy_Statistics>::Result Statistics;

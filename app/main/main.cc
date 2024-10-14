@@ -9,9 +9,10 @@ OStream cout;
 
 
 void foo1() {
-    for (int i = 0; i < 500; i++) {
-        // Delay d(5e5);
-        cout << "i = " << i << endl;
+    for (int i = 0; i < 1e7; i++) {
+        Math::sqrt(i); Math::gcd(i, 193);
+        if (!(i % 1000000))
+            cout << "i = " << i << endl;
         // cout << "A thread 1 está executando, ";
     }
     // cout << (100 * CPU::clock()) << ", " << CPU::max_clock() << ", ";
