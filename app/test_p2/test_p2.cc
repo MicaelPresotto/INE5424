@@ -42,11 +42,7 @@ void function_cos() {
 }
 
 
-int main() {    
-    cout << CPU::clock() << " " << CPU::max_clock() << endl;
-    CPU::clock(CPU::max_clock() * 1500 / 10000);
-    cout << CPU::clock() << " " << CPU::max_clock() << endl;
-    
+int main() {
     RT_Thread* pt1 = new RT_Thread(&function_sqrt, 10e5);
     RT_Thread* pt2 = new RT_Thread(&function_delay, 7e5);
     RT_Thread* pt3 = new RT_Thread(&function_pass, 3e5);

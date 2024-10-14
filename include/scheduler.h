@@ -116,7 +116,6 @@ public:
         Tick job_release;
         Tick job_start;
         Tick job_utilization;
-        bool job_released = false;
         unsigned int jobs_released = 0;
         unsigned int jobs_finished = 0;
     };
