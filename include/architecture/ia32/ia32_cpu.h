@@ -366,7 +366,7 @@ public:
         wrmsr(CLOCK_MODULATION, dc);
     }
     static Hertz max_clock() { return _cpu_clock; }
-    static Hertz min_clock() { return _cpu_clock * 1250.0 / 10000.0;}
+    static Hertz min_clock() { return _cpu_clock * 1250ULL / 10000ULL;}
 
     static Hertz bus_clock() { return _bus_clock; }
 
