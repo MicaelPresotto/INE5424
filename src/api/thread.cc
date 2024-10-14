@@ -426,6 +426,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         
         next->statistics().job_start = Alarm::elapsed(); // EGL job start = current time
         next->criterion().updateFrequency();
+        
     }
 }
 

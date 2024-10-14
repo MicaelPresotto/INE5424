@@ -19,61 +19,30 @@ void RT_Common::handle(Event event) {
     db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
     if(event & CREATE) {
         db<Thread>(TRC) << "CREATE";
-
-        // _statistics.thread_creation = elapsed();
-        // _statistics.job_released = false;
     }
     if(event & FINISH) {
         db<Thread>(TRC) << "FINISH";
-
-        // _statistics.thread_destruction = elapsed();
     }
     if(event & ENTER) {
         db<Thread>(TRC) << "ENTER";
-
-        // _statistics.thread_last_dispatch = elapsed();
     }
     if(event & LEAVE) {
-        // Tick cpu_time = elapsed() - _statistics.thread_last_dispatch;
-
         db<Thread>(TRC) << "LEAVE";
-
-        // _statistics.thread_last_preemption = elapsed();
-        // _statistics.thread_execution_time += cpu_time;
-//        if(_statistics.job_released) {
-            // _statistics.job_utilization += cpu_time;
-//        }
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
-
-        // _statistics.job_released = true;
-        _statistics.job_release = elapsed();
-        _statistics.job_start = 0;
-        _statistics.job_utilization = 0;
         _statistics.jobs_released++;
+        _priority = elapsed() + _deadline;
+        _statistics.job_release = elapsed();
     }
     if(periodic() && (event & JOB_FINISH)) {
-        db<Thread>(TRC) << "WAIT";
-
-        // _statistics.job_released = false;
-        // _statistics.job_finish = elapsed();
+        // if (_statistics.jobs_finished < _statistics.jobs_released)
         _statistics.jobs_finished++;
-    //    _statistics.job_utilization += elapsed() - _statistics.thre   ad_last_dispatch;
+        db<Thread>(TRC) << "WAIT";
     }
-    if(event & COLLECT) {
-        db<Thread>(TRC) << "|COLLECT";
-    }
-    if(periodic() && (event & CHARGE)) {
-        db<Thread>(TRC) << "|CHARGE";
-    }
-    if(periodic() && (event & AWARD)) {
-        db<Thread>(TRC) << "|AWARD";
-    }
-    if(periodic() && (event & UPDATE)) {
-        db<Thread>(TRC) << "|UPDATE";
-    }
+
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
+    db<Thread>(TRC) << this << " " << _statistics.jobs_released << " " << _statistics.jobs_finished << " " << _statistics.jobs_released - _statistics.jobs_finished << endl;
 }
 
 void EDFEnergyAwareness::handle(Event event) {
@@ -92,23 +61,18 @@ void EDFEnergyAwareness::handle(Event event) {
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
-        if (!_statistics.job_released) {
-            _statistics.job_released = true;
-            _statistics.jobs_released++;
-        }
+        _statistics.jobs_released++;
         _priority = elapsed() + _deadline;
         _statistics.job_release = elapsed();
-
     }
     if(periodic() && (event & JOB_FINISH)) {
-        if (_statistics.job_released) {
-            _statistics.jobs_finished++;
-        }
-        _statistics.job_released = false;
+        // if (_statistics.jobs_finished < _statistics.jobs_released)
+        _statistics.jobs_finished++;
         db<Thread>(TRC) << "WAIT";
     }
 
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
+    db<Thread>(TRC) << this << " " << _statistics.jobs_released << " " << _statistics.jobs_finished << " " << _statistics.jobs_released - _statistics.jobs_finished << endl;
 }
 
 void EDFEnergyAwareness::updateFrequency() {
@@ -122,7 +86,6 @@ void EDFEnergyAwareness::updateFrequency() {
 
     unsigned long new_freq = calculateFrequency(percentage);
     CPU::clock(new_freq);
-    db<Thread>(TRC) << _statistics.jobs_released << " " << _statistics.jobs_finished << " " << _statistics.jobs_released - _statistics.jobs_finished << endl;
     // db<Thread>(TRC) << "Job start = " << time(_statistics.job_start) << ", Release = " << time(_statistics.job_release) << endl;
     // db<Thread>(TRC) << "Elapsed Time é " << elapsed_time << endl;
     // db<Thread>(TRC) << "Deadline é " << deadline << endl;
