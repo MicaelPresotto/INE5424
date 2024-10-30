@@ -7,6 +7,16 @@ __BEGIN_SYS
 
 volatile unsigned int Variable_Queue_Scheduler::_next_queue;
 
+inline RT_Common::Tick RT_Common::elapsed() { return Alarm::elapsed(); }
+
+RT_Common::Tick RT_Common::ticks(Microsecond time) {
+    return Timer_Common::ticks(time, Alarm::timer()->frequency());
+}
+
+Microsecond RT_Common::time(Tick ticks) {
+    return Timer_Common::time(ticks, Alarm::timer()->frequency());
+}
+
 // The following Scheduling Criteria depend on Alarm, which is not available at scheduler.h
 template <typename ... Tn>
 FCFS::FCFS(int p, Tn & ... an): Priority((p == IDLE) ? IDLE : Alarm::elapsed()) {}
@@ -53,7 +63,9 @@ void GEDFEnergyAwareness::updateFrequency() {
     if (elapsed_time && deadline) percentage = (100ULL*elapsed_time) / deadline;
 
     unsigned long new_freq = calculateFrequency(percentage);
-    CPU::clock(new_freq);
+    db<Thread>(TRC) << new_freq << endl;
+    // CPU::clock(new_freq);
+    CPU::clock(5UL);
 }
 
 // var1 = 978161032, escala = 10e9 64bits 978161032*978161032 / 1e9 * 1e9
