@@ -19,9 +19,9 @@ template<> struct Traits<Build>: public Traits_Tokens
 
     // Default flags
     static const bool enabled = true;
-    // static const bool monitored = true;
+    static const bool monitored = true;
     static const bool debugged = true;
-    static const bool hysterically_debugged = false;
+    static const bool hysterically_debugged = true;
 };
 
 
@@ -121,7 +121,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const int priority_inversion_protocol = NONE;
 
 
-    typedef IF<(CPUS > 1), Fixed_CPU, Priority>::Result Criterion;
+    typedef IF<(CPUS > 1), GRR, Priority>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

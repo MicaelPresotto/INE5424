@@ -119,7 +119,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const int priority_inversion_protocol = NONE;
 
-    typedef IF<(CPUS > 1), GRR, GEDFEnergyAwareness>::Result Criterion;
+    typedef IF<(CPUS > 1), GRR, EDFEnergyAwareness>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
