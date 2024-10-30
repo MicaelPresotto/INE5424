@@ -17,7 +17,7 @@ public:
     Init_System() {
         db<Init>(TRC) << "Init_System()" << endl;
 
-        CPU::smp_barrier();
+        CPU::smp_barrier(); // wait for all the cpus to reach init_system, since we need all of them here at the same time
 
         // Only the bootstrap CPU runs INIT_SYSTEM fully
         if(CPU::id() == CPU::BSP) {
@@ -47,7 +47,7 @@ public:
 
         } else {
 
-            CPU::smp_barrier();
+            CPU::smp_barrier(); // complements barrier from line 46
 
             db<Init>(INF) << "Initializing the CPU: " << endl;
             CPU::init();
@@ -73,7 +73,7 @@ public:
         }
 
         // Initialization continues at init_end
-        CPU::smp_barrier();
+        CPU::smp_barrier(); // dont think we need this
     }
 };
 

@@ -430,7 +430,7 @@ int Thread::idle()
         kout << "*** EPOS is shutting down!" << endl;
     }
 
-    CPU::smp_barrier();
+    CPU::smp_barrier(); // ?
     Machine::reboot();
 
     return 0;
