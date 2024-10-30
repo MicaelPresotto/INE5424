@@ -403,11 +403,9 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
         if(smp)
             _lock.acquire();
-
-        if(!smp){
-            next->statistics().job_release = Alarm::elapsed();
-            next->criterion().updateFrequency();
-        }
+    
+        next->statistics().job_release = Alarm::elapsed();
+        next->criterion().updateFrequency();
     }
 }
 

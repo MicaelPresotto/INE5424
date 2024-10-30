@@ -18,8 +18,7 @@ private:
 public:
     Init_Application() {
         db<Init>(TRC) << "Init_Application()" << endl;
-         // wait for all the cpus to reach init_application, but I have some doubts about this barrier, why do we need to
-         // wait the cpus if we already have two more barriers ahead on the code
+
         CPU::smp_barrier();
 
         // Only the bootstrap CPU runs INIT_APPLICATION
