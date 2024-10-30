@@ -357,7 +357,6 @@ public:
     static void clock(Hertz frequency) {
         Reg64 clock = frequency;
         unsigned int dc;
-        db<CPU>(WRN) << "max freq = " << max_clock() << endl;
         if(clock <= (_cpu_clock * 1875ULL / 10000ULL)) {
             dc = 0b10011;   // minimum duty cycle of 12.5 %
             _cpu_current_clock = _cpu_clock * 1875ULL / 10000ULL;

@@ -63,19 +63,25 @@ void GEDFEnergyAwareness::updateFrequency() {
     if (elapsed_time && deadline) percentage = (100ULL*elapsed_time) / deadline;
 
     unsigned long new_freq = calculateFrequency(percentage);
-    db<Thread>(TRC) << new_freq << endl;
-    // CPU::clock(new_freq);
-    CPU::clock(5UL);
+    CPU::clock(new_freq);
 }
 
 // var1 = 978161032, escala = 10e9 64bits 978161032*978161032 / 1e9 * 1e9
 
 unsigned long long GEDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
-    if (percentage <= 20ULL) return 24ULL*percentage;
-    // Define a frequência máxima se exceder 85% da frequência máxima
-    // if (ret >= 0.85 * CPU::max_clock()) return  CPU::max_clock();
-    // return ret;
-    return 0ULL;
+    unsigned long long factor;
+
+    if (percentage <= 10) factor = 198ULL;
+    else if (percentage <= 20) factor = 357ULL;
+    else if (percentage <= 30) factor = 485ULL;
+    else if (percentage <= 40) factor = 587ULL;
+    else if (percentage <= 50) factor = 669ULL;
+    else if (percentage <= 60) factor = 735ULL;
+    else if (percentage <= 70) factor = 787ULL;
+    else if (percentage <= 80) factor = 829ULL;
+    else factor = 1000ULL;
+
+    return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
 }
 
 __END_SYS
