@@ -66,8 +66,6 @@ void GEDFEnergyAwareness::updateFrequency() {
     CPU::clock(new_freq);
 }
 
-// var1 = 978161032, escala = 10e9 64bits 978161032*978161032 / 1e9 * 1e9
-
 unsigned long long GEDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
     unsigned long long factor;
 
