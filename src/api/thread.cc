@@ -3,6 +3,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <time.h>
 
 __BEGIN_SYS
 
@@ -402,6 +403,9 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
         if(smp)
             _lock.acquire();
+        
+        next->statistics().job_release = Alarm::elapsed();
+        next->criterion().updateFrequency();
     }
 }
 
