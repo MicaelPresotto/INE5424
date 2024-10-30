@@ -58,6 +58,7 @@ public:
 
     void p();
     void v();
+    volatile long get_value() {return _value >= 0 ? _value : 0;};
 
 private:
     volatile long _value;

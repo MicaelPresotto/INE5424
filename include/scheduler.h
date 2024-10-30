@@ -117,8 +117,6 @@ public:
         Tick job_release;
         Tick thread_last_dispatch;
         Tick job_utilization;
-        unsigned int jobs_released = 0;
-        unsigned int jobs_finished = 0;
     };
 
     // typedef IF<Traits<System>::monitored, Real_Statistics, Dummy_Statistics>::Result Statistics;

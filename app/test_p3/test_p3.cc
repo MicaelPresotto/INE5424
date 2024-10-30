@@ -51,16 +51,11 @@ int main() {
 
     Delay d(1e7);
 
-    int temp = pt1->criterion().statistics().jobs_released - pt1->criterion().statistics().jobs_finished;
-    cout << "Deadlines perdidas p1: " << temp << " Releases: " << pt1->criterion().statistics().jobs_released << endl;
-    temp = pt2->criterion().statistics().jobs_released - pt2->criterion().statistics().jobs_finished;
-    cout << "Deadlines perdidas p2: " << temp << " Releases: " << pt2->criterion().statistics().jobs_released << endl;
-    temp = pt3->criterion().statistics().jobs_released - pt3->criterion().statistics().jobs_finished;
-    cout << "Deadlines perdidas p3: " << temp << " Releases: " << pt3->criterion().statistics().jobs_released << endl;
-    temp = pt4->criterion().statistics().jobs_released - pt4->criterion().statistics().jobs_finished;
-    cout << "Deadlines perdidas p4: " << temp << " Releases: " << pt4->criterion().statistics().jobs_released << endl;
-    temp = pt5->criterion().statistics().jobs_released - pt5->criterion().statistics().jobs_finished;
-    cout << "Deadlines perdidas p5: " << temp << " Releases: " << pt5->criterion().statistics().jobs_released << endl;
+    cout << "Deadlines perdidas p1: " << pt1->get_deadline_losses() << endl;
+    cout << "Deadlines perdidas p2: " << pt2->get_deadline_losses() << endl;
+    cout << "Deadlines perdidas p3: " << pt3->get_deadline_losses() << endl;
+    cout << "Deadlines perdidas p4: " << pt4->get_deadline_losses() << endl;
+    cout << "Deadlines perdidas p5: " << pt5->get_deadline_losses() << endl;
 
     delete pt1;
     delete pt2;

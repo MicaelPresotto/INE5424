@@ -105,6 +105,8 @@ public:
         return t->_alarm.times();
     }
 
+    volatile long get_deadline_losses() {return _semaphore.get_value();};
+
 protected:
     Semaphore _semaphore;
     Handler _handler;

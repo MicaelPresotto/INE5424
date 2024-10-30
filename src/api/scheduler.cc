@@ -40,17 +40,13 @@ void GEDFEnergyAwareness::handle(Event event) {
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
-        _statistics.jobs_released++;
         _priority = elapsed() + _deadline;
         _statistics.thread_last_dispatch = elapsed();
     }
     if(periodic() && (event & JOB_FINISH)) {
-        _statistics.jobs_finished++;
         db<Thread>(TRC) << "WAIT";
     }
-
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
-    db<Thread>(TRC) << this << " " << _statistics.jobs_released << " " << _statistics.jobs_finished << " " << _statistics.jobs_released - _statistics.jobs_finished << endl;
 }
 
 void GEDFEnergyAwareness::updateFrequency() {
