@@ -11,6 +11,9 @@ void Machine::pre_init(System_Info * si)
         Display::init();
 
     db<Init, Machine>(TRC) << "Machine::pre_init()" << endl;
+
+    CPU::smp_barrier_init(si->bm.n_cpus);
+    CPU::smp_barrier();
 }
 
 void Machine::init()
