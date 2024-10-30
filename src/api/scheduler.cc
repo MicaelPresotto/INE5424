@@ -84,4 +84,6 @@ unsigned long long GEDFEnergyAwareness::calculateFrequency(unsigned long long pe
     return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
 }
 
+EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}
+
 __END_SYS
