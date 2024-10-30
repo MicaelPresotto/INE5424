@@ -111,6 +111,7 @@ class RM;
 class DM;
 class LM;
 class EDF;
+class EDFEnergyAwareness;
 class GEDFEnergyAwareness;
 class LLF;
 class GRR;

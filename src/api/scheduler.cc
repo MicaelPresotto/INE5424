@@ -24,7 +24,7 @@ FCFS::FCFS(int p, Tn & ... an): Priority((p == IDLE) ? IDLE : Alarm::elapsed()) 
 // Since the definition above is only known to this unit, forcing its instantiation here so it gets emitted in scheduler.o for subsequent linking with other units is necessary.
 template FCFS::FCFS<>(int p);
 
-void GEDFEnergyAwareness::handle(Event event) {
+void EDFEnergyAwareness::handle(Event event) {
     db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
     if(event & CREATE) {
         db<Thread>(TRC) << "CREATE";
@@ -49,7 +49,7 @@ void GEDFEnergyAwareness::handle(Event event) {
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
 }
 
-void GEDFEnergyAwareness::updateFrequency() {
+void EDFEnergyAwareness::updateFrequency() {
     unsigned long long thread_last_dispatch = time(_statistics.thread_last_dispatch);
     unsigned long long job_release = time(_statistics.job_release);
     unsigned long long deadline = period();
@@ -62,7 +62,7 @@ void GEDFEnergyAwareness::updateFrequency() {
     CPU::clock(new_freq);
 }
 
-unsigned long long GEDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
+unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
     unsigned long long factor;
 
     if (percentage <= 10) factor = 198ULL;

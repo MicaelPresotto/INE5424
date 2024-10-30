@@ -17,7 +17,7 @@ void Thread::init()
     if(smp && (CPU::id() == CPU::BSP))
         IC::int_vector(IC::INT_RESCHEDULER, rescheduler);  // if an eoi handler is needed, then it was already installed at IC::init()
 
-    CPU::smp_barrier(); // wait for BSP to install the interrupt rescheduler handler
+    CPU::smp_barrier();
 
     if(smp)
         IC::enable(IC::INT_RESCHEDULER);
@@ -38,7 +38,7 @@ void Thread::init()
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
     new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), &Thread::idle);
 
-    CPU::smp_barrier(); // wait for all cpus to create their idle thread
+    CPU::smp_barrier();
 
     // The installation of the scheduler timer handler does not need to be done after the
     // creation of threads, since the constructor won't call reschedule() which won't call
@@ -52,7 +52,7 @@ void Thread::init()
     // No more interrupts until we reach init_end
     CPU::int_disable();
 
-    CPU::smp_barrier(); // ?
+    CPU::smp_barrier();
 
     // Transition from CPU-based locking to thread-based locking
     if(CPU::id() == CPU::BSP)

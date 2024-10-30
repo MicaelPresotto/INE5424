@@ -403,9 +403,11 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
         if(smp)
             _lock.acquire();
-        
-        next->statistics().job_release = Alarm::elapsed();
-        next->criterion().updateFrequency();
+
+        if(!smp){
+            next->statistics().job_release = Alarm::elapsed();
+            next->criterion().updateFrequency();
+        }
     }
 }
 
@@ -424,14 +426,13 @@ int Thread::idle()
         if(_scheduler.schedulables() > 0) // a thread might have been woken up by another CPU
             yield();
     }
-    CPU::int_disable();
-    CPU::smp_barrier();
+
     if(CPU::id() == CPU::BSP) {
         kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
         kout << "*** EPOS is shutting down!" << endl;
     }
 
-    CPU::smp_barrier(); // ?
+    CPU::smp_barrier();
     Machine::reboot();
 
     return 0;

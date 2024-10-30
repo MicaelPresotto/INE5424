@@ -341,16 +341,29 @@ public:
     void handle(Event event);
 };
 
-class GEDFEnergyAwareness : public EDF {
+class EDFEnergyAwareness : public EDF {
 
 public:
 
-    GEDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
-    GEDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
+    EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
+    EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
 
     void handle(Event event);
     void updateFrequency();
     unsigned long long calculateFrequency(unsigned long long frequency);
+};
+
+
+class GEDFEnergyAwareness : public EDFEnergyAwareness {
+
+public:
+    static const unsigned int HEADS = Traits<Machine>::CPUS;
+public:
+    
+    GEDFEnergyAwareness(int p = APERIODIC) : EDFEnergyAwareness(p) {}
+    GEDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c) {}
+
+    static unsigned int current_head() { return CPU::id(); }
 };
 
 // Least Laxity First
