@@ -425,11 +425,12 @@ int Thread::idle()
             yield();
     }
 
-    CPU::smp_barrier();
     if(CPU::id() == CPU::BSP) {
         kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
         kout << "*** EPOS is shutting down!" << endl;
     }
+
+    CPU::smp_barrier();
 
     Machine::reboot();
 
