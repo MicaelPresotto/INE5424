@@ -93,14 +93,14 @@ void GEDFEnergyAwareness::updateFrequency() {
     unsigned long long job_release = time(_statistics.job_release);
     unsigned long long deadline = period();
     unsigned long long percentage = 0;
-    unsigned long long elapsed_time = job_release - thread_last_dispatch;
+    unsigned long long elapsed_time = thread_last_dispatch - job_release;
 
     if (elapsed_time && deadline) percentage = (100ULL*elapsed_time) / deadline;
 
     unsigned long new_freq = calculateFrequency(percentage);
     CPU::clock(new_freq);
 
-    db<CPU>(DEV) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%)"<< endl;
+    db<CPU>(DEV) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%) | " << percentage << " %" << endl;
 }
 
 EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}
