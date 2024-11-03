@@ -358,6 +358,10 @@ template<typename T>
 class Scheduling_Queue<T, CPU_Affinity>:
 public Scheduling_Multilist<T> {};
 
+template<typename T>
+class Scheduling_Queue<T, GEDFEnergyAwareness>:
+public Multihead_Scheduling_List<T> {};
+
 __END_UTIL
 
 #endif
