@@ -78,16 +78,14 @@ unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long per
     return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
 }
 
-// Number of dispatches by CPU since lasy frequency update
-int lastUpdate[Traits<Machine>::CPUS] = {0};
-
+int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
 void GEDFEnergyAwareness::updateFrequency() {
-    CPU::finc(lastUpdate[CPU::id()]);
-    db<CPU>(DEV) << "LAST UPDATE [" << CPU::id() << "] = " << lastUpdate[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
-    if (lastUpdate[CPU::id()] < 2) return;
+    CPU::finc(CPU::last_update[CPU::id()]);
+    db<CPU>(DEV) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    if (CPU::last_update[CPU::id()] < 2) return;
     
-    lastUpdate[CPU::id()] = 0;
+    CPU::last_update[CPU::id()] = 0;
 
     unsigned long long thread_last_dispatch = time(_statistics.thread_last_dispatch);
     unsigned long long job_release = time(_statistics.job_release);

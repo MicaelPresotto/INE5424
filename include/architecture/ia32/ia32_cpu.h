@@ -19,6 +19,8 @@ private:
 public:
     // Bootstrap/service CPU id
     static const unsigned long BSP = 0;
+    // Number of dispatches by CPU since lasy frequency update
+    static int last_update[Traits<Machine>::CPUS];
 
     // Native Data Types
     using CPU_Common::Reg8;
