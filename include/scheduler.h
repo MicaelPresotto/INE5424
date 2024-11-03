@@ -324,7 +324,7 @@ public:
 
     GEDFEnergyAwareness(int p = APERIODIC) : EDFEnergyAwareness(p) {}
     GEDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c) {}
-
+    void updateFrequency();
     static unsigned int current_head() { return CPU::id(); }
 };
 

@@ -65,7 +65,7 @@ void EDFEnergyAwareness::updateFrequency() {
 unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
     unsigned long long factor;
 
-    if (percentage <= 10) factor = 198ULL;
+    if (percentage <= 10) factor = 0;
     else if (percentage <= 20) factor = 357ULL;
     else if (percentage <= 30) factor = 485ULL;
     else if (percentage <= 40) factor = 587ULL;
@@ -76,6 +76,31 @@ unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long per
     else factor = 1000ULL;
 
     return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
+}
+
+// Number of dispatches by CPU since lasy frequency update
+int lastUpdate[Traits<Machine>::CPUS] = {0};
+
+
+void GEDFEnergyAwareness::updateFrequency() {
+    CPU::finc(lastUpdate[CPU::id()]);
+    db<CPU>(DEV) << "LAST UPDATE [" << CPU::id() << "] = " << lastUpdate[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    if (lastUpdate[CPU::id()] < 2) return;
+    
+    lastUpdate[CPU::id()] = 0;
+
+    unsigned long long thread_last_dispatch = time(_statistics.thread_last_dispatch);
+    unsigned long long job_release = time(_statistics.job_release);
+    unsigned long long deadline = period();
+    unsigned long long percentage = 0;
+    unsigned long long elapsed_time = job_release - thread_last_dispatch;
+
+    if (elapsed_time && deadline) percentage = (100ULL*elapsed_time) / deadline;
+
+    unsigned long new_freq = calculateFrequency(percentage);
+    CPU::clock(new_freq);
+
+    db<CPU>(DEV) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%)"<< endl;
 }
 
 EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}
