@@ -431,8 +431,7 @@ int Thread::idle()
         kout << "*** EPOS is shutting down!" << endl;
     }
 
-    if (CPU::id() == CPU::BSP)
-        Machine::reboot();
+    Machine::reboot();
 
     return 0;
 }
