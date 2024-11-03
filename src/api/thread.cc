@@ -3,6 +3,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <time.h>
 
 __BEGIN_SYS
 
@@ -402,6 +403,9 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
         if(smp)
             _lock.acquire();
+        
+        next->statistics().thread_last_dispatch = Alarm::elapsed();
+        next->criterion().updateFrequency();
     }
 }
 
@@ -421,13 +425,14 @@ int Thread::idle()
             yield();
     }
 
+    CPU::smp_barrier();
     if(CPU::id() == CPU::BSP) {
         kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
         kout << "*** EPOS is shutting down!" << endl;
     }
 
-    CPU::smp_barrier();
-    Machine::reboot();
+    if (CPU::id() == CPU::BSP)
+        Machine::reboot();
 
     return 0;
 }

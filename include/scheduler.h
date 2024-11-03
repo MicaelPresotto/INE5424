@@ -75,45 +75,13 @@ public:
     static const bool dynamic = false;
     static const bool preemptive = true;
     static const unsigned int QUEUES = 1;
-
-    // Runtime Statistics (for policies that don't use any; that's why its a union)
-    union Dummy_Statistics {  // for Traits<System>::monitored = false
-        // Thread related statistics
-        Tick thread_creation;                   // tick in which the thread was created
-        Tick thread_destruction;                // tick in which the thread was destroyed
-        Tick thread_execution_time;             // accumulated execution time (in ticks)
-        Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
-        Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
-
-        // Job related statistics
-        bool job_released;
-        Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
-        Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
-        Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
-        Tick job_utilization;                   // accumulated execution time (in ticks)
-        unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
-        unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
+    struct EnergyAwarenessStatistics {  
+        Tick job_release;
+        Tick thread_last_dispatch;
+        Tick job_utilization;
     };
 
-    struct Real_Statistics {  // for Traits<System>::monitored = true
-        // Thread related statistics
-        Tick thread_creation;                   // tick in which the thread was created
-        Tick thread_destruction;                // tick in which the thread was destroyed
-        Tick thread_execution_time;             // accumulated execution time (in ticks)
-        Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
-        Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
-
-        // Job related statistics
-        bool job_released;
-        Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
-        Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
-        Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
-        Tick job_utilization;                   // accumulated execution time (in ticks)
-        unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
-        unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
-    };
-
-    typedef IF<Traits<System>::monitored, Real_Statistics, Dummy_Statistics>::Result Statistics;
+    typedef EnergyAwarenessStatistics Statistics;
 
 protected:
     Scheduling_Criterion_Common() {}
@@ -126,6 +94,7 @@ public:
     bool periodic() { return false; }
 
     volatile Statistics & statistics() { return _statistics; }
+    void updateFrequency(){};
     unsigned int queue() const { return 0; }
 
 protected:
@@ -333,6 +302,31 @@ public:
     void handle(Event event);
 };
 
+
+class EDFEnergyAwareness : public EDF {
+
+public:
+
+    EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
+    EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
+
+    void handle(Event event);
+    void updateFrequency();
+    unsigned long long calculateFrequency(unsigned long long frequency);
+};
+
+
+class GEDFEnergyAwareness : public EDFEnergyAwareness {
+
+public:
+    static const unsigned int HEADS = Traits<Machine>::CPUS;
+public:
+
+    GEDFEnergyAwareness(int p = APERIODIC) : EDFEnergyAwareness(p) {}
+    GEDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c) {}
+
+    static unsigned int current_head() { return CPU::id(); }
+};
 
 // Least Laxity First
 class LLF: public RT_Common

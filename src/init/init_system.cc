@@ -47,7 +47,7 @@ public:
 
         } else {
 
-
+            CPU::smp_barrier();
             db<Init>(INF) << "Initializing the CPU: " << endl;
             CPU::init();
 
@@ -58,6 +58,7 @@ public:
 
         db<Init>(INF) << "Initializing system abstractions: " << endl;
         System::init();
+        CPU::smp_barrier();
 
         if(CPU::id() == CPU::BSP) {
             // Randomize the Random Numbers Generator's seed

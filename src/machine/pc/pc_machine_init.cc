@@ -9,6 +9,7 @@ void Machine::pre_init(System_Info * si)
 
     if(CPU::id() == CPU::BSP)
         Display::init();
+    CPU::smp_barrier_init(si->bm.n_cpus);
 
     db<Init, Machine>(TRC) << "Machine::pre_init()" << endl;
 }
