@@ -26,15 +26,9 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _stack = new (SYSTEM) char[stack_size];
 }
 
-unsigned long Thread::get_smallest_queue(){
-    unsigned long smallest_queue = 0;
-    for(unsigned long nqueue = 0; nqueue < CPU::cores(); nqueue++){
-        unsigned long current_size_queue = Thread::_scheduler.size(nqueue);
-        if(current_size_queue < smallest_queue) smallest_queue = current_size_queue;
-    }
-    return smallest_queue;
+Scheduler<Thread> Thread::get_scheduler(){
+    return Thread::_scheduler;
 }
-
 
 void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
 {
@@ -388,7 +382,8 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
             for_all_threads(Criterion::UPDATE);
             next->criterion().handle(Criterion::AWARD  | Criterion::ENTER);
         }
-
+        // verificar se o dispatch eh uma preempcao em tempo de execucao ou se a thread ja terminou sua execucao, se ja terminar podemos fazer o reeschedule, se nao
+        // mantem na mesma queue
         if(prev->_state == RUNNING)
             prev->_state = READY;
         next->_state = RUNNING;

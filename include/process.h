@@ -79,7 +79,7 @@ public:
     Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an);
     ~Thread();
 
-    static unsigned long get_smallest_queue();
+    static Scheduler<Thread> get_scheduler();
     const volatile State & state() const { return _state; }
     Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
     volatile Criterion::Statistics & statistics() { return criterion().statistics(); }
@@ -158,7 +158,6 @@ protected:
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
     static Spin _lock;
-public:
     static Scheduler<Thread> _scheduler;
 };
 

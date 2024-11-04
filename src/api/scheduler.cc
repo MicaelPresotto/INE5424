@@ -102,7 +102,12 @@ void GEDFEnergyAwareness::updateFrequency() {
 }
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
-    return Thread::get_smallest_queue();
+    unsigned long smallest_queue = 0;
+    for(unsigned long nqueue = 0; nqueue < CPU::cores(); nqueue++){
+        unsigned long current_size_queue = Thread::get_scheduler().size(nqueue);
+        if(current_size_queue < smallest_queue) smallest_queue = current_size_queue;
+    }
+    return smallest_queue;
 }
 
 EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}
