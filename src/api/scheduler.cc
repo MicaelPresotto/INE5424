@@ -101,6 +101,10 @@ void GEDFEnergyAwareness::updateFrequency() {
     db<CPU>(DEV) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%) | " << percentage << " %" << endl;
 }
 
+unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
+    return Thread::get_smallest_queue();
+}
+
 EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}
 
 __END_SYS

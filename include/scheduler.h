@@ -331,9 +331,10 @@ public:
 
 class EDFEnergyAwarenessAffinity: public Priority, public Variable_Queue_Scheduler
 {
+    friend class Thread;
 public:
-    static const bool timed = false;
-    static const bool dynamic = true;
+    static const bool timed = true;
+    static const bool dynamic = false;
     static const bool preemptive = true;
     static const bool heuristic = true;
     static const unsigned int QUEUES = Traits<Machine>::CPUS;
@@ -341,30 +342,12 @@ public:
 public:
     template <typename ... Tn>
     EDFEnergyAwarenessAffinity(int p = NORMAL, unsigned int cpu = ANY, Tn & ... an)
-    : Priority(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id() : (cpu != ANY) ? cpu : ++_next_queue %= CPU::cores()) {}
+    : Priority(p), Variable_Queue_Scheduler(define_best_queue()) {}
 
     using Variable_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
-    List<unsigned int> get_size_of_queues(){
-        List<unsigned int> size_of_queues = {};
-        for(int nqueue = 0; nqueue < CPU::cores(); nqueue++){
-            // size_of_queues.insert(Scheduling_Queue<unsigned int, EDFEnergyAwarenessAffinity>::size(nqueue));
-            // how to acesss the multiqueue defined down below?
-        }
-        return size_of_queues;
-    }
-    static unsigned int define_best_queue(){
-        unsigned int size_of_queues = get_size_of_queues();
-        unsigned int first_queue_size = size_of_queues[0];
-        unsigned int best_queue = 0;
 
-        for(int i = 1; i < size_of_queues.length(); i++){
-            if(i < first_queue_size){
-                best_queue = i;
-            }
-        }
-        return best_queue;
-    }
+    unsigned long define_best_queue();
 };
 
 // Least Laxity First

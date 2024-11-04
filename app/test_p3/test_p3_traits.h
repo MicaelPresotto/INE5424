@@ -122,7 +122,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const int priority_inversion_protocol = NONE;
 
 
-    typedef IF<(CPUS > 1), GEDFEnergyAwareness, EDFEnergyAwareness>::Result Criterion;
+    typedef IF<(CPUS > 1), EDFEnergyAwarenessAffinity, EDFEnergyAwareness>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

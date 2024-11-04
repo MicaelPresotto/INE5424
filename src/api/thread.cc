@@ -26,6 +26,15 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _stack = new (SYSTEM) char[stack_size];
 }
 
+unsigned long Thread::get_smallest_queue(){
+    unsigned long smallest_queue = 0;
+    for(unsigned long nqueue = 0; nqueue < CPU::cores(); nqueue++){
+        unsigned long current_size_queue = Thread::_scheduler.size(nqueue);
+        if(current_size_queue < smallest_queue) smallest_queue = current_size_queue;
+    }
+    return smallest_queue;
+}
+
 
 void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
 {
