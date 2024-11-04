@@ -329,20 +329,18 @@ public:
     static unsigned int current_head() { return CPU::id(); }
 };
 
-class EDFEnergyAwarenessAffinity: public Priority, public Variable_Queue_Scheduler
+class EDFEnergyAwarenessAffinity: public EDFEnergyAwareness, public Variable_Queue_Scheduler
 {
-    friend class Thread;
 public:
-    static const bool timed = true;
-    static const bool dynamic = false;
-    static const bool preemptive = true;
-    static const bool heuristic = true;
+    static const bool dynamic = true;
     static const unsigned int QUEUES = Traits<Machine>::CPUS;
 
 public:
-    template <typename ... Tn>
-    EDFEnergyAwarenessAffinity(int p = NORMAL, unsigned int cpu = ANY, Tn & ... an)
-    : Priority(p), Variable_Queue_Scheduler(define_best_queue()) {}
+
+    EDFEnergyAwarenessAffinity(int p = APERIODIC)
+    : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) {}
+
+    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) {}
 
     using Variable_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
