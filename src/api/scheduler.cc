@@ -26,30 +26,40 @@ template FCFS::FCFS<>(int p);
 
 void EDFEnergyAwareness::handle(Event event) {
     db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
+    if(event & UPDATE) {
+        db<Thread>(DEV) << "UPDATE";
+    }
     if(event & CREATE) {
-        db<Thread>(TRC) << "CREATE";
+        db<Thread>(DEV) << "CREATE";
     }
     if(event & FINISH) {
-        db<Thread>(TRC) << "FINISH";
+        db<Thread>(DEV) << "FINISH";
         // _statistics.total_execution_time += _statistics.current_execution_time;
         // _statistics.current_execution_time = 0;
     }
     if(event & ENTER) {
-        db<Thread>(TRC) << "ENTER";
+        db<Thread>(DEV) << "ENTER";
     }
     if(event & LEAVE) {
-        db<Thread>(TRC) << "LEAVE";
+        db<Thread>(DEV) << "LEAVE";
         _statistics.current_execution_time = elapsed() - _statistics.thread_last_dispatch;
     }
     if(periodic() && (event & JOB_RELEASE)) {
-        db<Thread>(TRC) << "RELEASE";
+        db<Thread>(DEV) << "RELEASE";
         _priority = elapsed() + _deadline;
         _statistics.job_release = elapsed();
     }
     if(periodic() && (event & JOB_FINISH)) {
-        db<Thread>(TRC) << "WAIT";
+        db<Thread>(DEV) << "WAIT";
+        _statistics.total_execution_time += _statistics.current_execution_time;
+        _statistics.current_execution_time = 0L;
+        _statistics.executions += 1ULL;
     }
+    
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
+    db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << Thread::self() << endl;
+    db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << Thread::self() << endl;
+    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << Thread::self() << endl;
 }
 
 void EDFEnergyAwareness::updateFrequency() {

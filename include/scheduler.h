@@ -343,9 +343,9 @@ public:
 public:
 
     EDFEnergyAwarenessAffinity(int p = APERIODIC)
-    : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) {}
+    : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) { db<CPU>(DEV) << " Qualquer coisa " << endl; }
 
-    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) {}
+    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { db<CPU>(DEV) << " Qualquer coisa " << endl; }
 
     using Variable_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
