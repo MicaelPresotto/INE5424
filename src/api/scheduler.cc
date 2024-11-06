@@ -116,9 +116,19 @@ void GEDFEnergyAwareness::updateFrequency() {
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0;
+    unsigned long min_avg_thread_time = 999UL;
     for(unsigned long nqueue = 0; nqueue < CPU::cores(); nqueue++){
-        unsigned long current_size_queue = Thread::get_scheduler().size(nqueue);
-        if(current_size_queue < smallest_queue) smallest_queue = current_size_queue;
+        unsigned long avg_queue_thread_time = 0;
+        for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){
+            auto current_element = *it;
+            if (current_element.rank() != IDLE) {
+                avg_queue_thread_time += current_element.object()->criterion().statistics().total_execution_time;
+            }
+        }
+        if(avg_queue_thread_time < min_avg_thread_time) {
+            smallest_queue = nqueue;
+            min_avg_thread_time = avg_queue_thread_time;
+        }
     }
     return smallest_queue;
 }
