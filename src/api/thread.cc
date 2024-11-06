@@ -386,6 +386,11 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // mantem na mesma queue
         if(prev->_state == RUNNING)
             prev->_state = READY;
+        else {
+            prev->statistics().total_execution_time += prev->statistics().current_execution_time;
+            prev->statistics().current_execution_time = 0L;
+            prev->statistics().executions += 1ULL;
+        }
         next->_state = RUNNING;
 
         db<Thread>(TRC) << "Thread::dispatch(prev=" << prev << ",next=" << next << ")" << endl;
@@ -410,6 +415,8 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         
         next->statistics().thread_last_dispatch = Alarm::elapsed();
         next->criterion().updateFrequency();
+        db<Thread>(DEV) << "Tempo de execução total: " << prev->statistics().total_execution_time << endl;
+        db<Thread>(DEV) << "Tempo de execução atual: " << prev->statistics().current_execution_time << endl;
     }
 }
 

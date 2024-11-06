@@ -79,6 +79,11 @@ public:
     struct EnergyAwarenessStatistics {  
         Tick job_release;
         Tick thread_last_dispatch;
+
+        Tick current_execution_time = 0L;
+        Tick total_execution_time = 0L;
+        unsigned long long executions = 0ULL;
+
         Tick job_utilization;
     };
 

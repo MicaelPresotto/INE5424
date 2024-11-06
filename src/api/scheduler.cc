@@ -31,12 +31,15 @@ void EDFEnergyAwareness::handle(Event event) {
     }
     if(event & FINISH) {
         db<Thread>(TRC) << "FINISH";
+        // _statistics.total_execution_time += _statistics.current_execution_time;
+        // _statistics.current_execution_time = 0;
     }
     if(event & ENTER) {
         db<Thread>(TRC) << "ENTER";
     }
     if(event & LEAVE) {
         db<Thread>(TRC) << "LEAVE";
+        _statistics.current_execution_time = elapsed() - _statistics.thread_last_dispatch;
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
