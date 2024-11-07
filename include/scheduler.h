@@ -82,6 +82,7 @@ public:
 
         Tick current_execution_time = 0L;
         Tick total_execution_time = 0L;
+        Tick avg_execution_time = 0L;
         unsigned long long executions = 0ULL;
 
         Tick job_utilization;
@@ -345,7 +346,7 @@ public:
     EDFEnergyAwarenessAffinity(int p = APERIODIC)
     : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) { db<CPU>(DEV) << "Define best queue: " << define_best_queue() << endl; }
 
-    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { db<CPU>(DEV) << " Qualquer coisa " << endl; }
+    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { db<CPU>(DEV) << " Qualquer coisa 2" << endl; }
 
     using Variable_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
