@@ -41,8 +41,10 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
         db<Thread>(DEV) << "ENTER";
     }
     if(event & LEAVE) {
-        db<Thread>(DEV) << "LEAVE";
+        db<Thread>(DEV) << "Current execution time era " << _statistics.current_execution_time << " -> " << elapsed() << " - " << _statistics.thread_last_dispatch << endl;
         _statistics.current_execution_time = elapsed() - _statistics.thread_last_dispatch;
+        db<Thread>(DEV) << "Current execution time virou " << _statistics.current_execution_time << endl;
+        db<Thread>(DEV) << "LEAVE";
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(DEV) << "RELEASE";
@@ -58,10 +60,10 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
-    db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << current << endl;
-    db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << current << endl;
-    db<Thread>(DEV) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << current << endl;
-    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << current << endl << endl;
+    db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << current << " / " << Thread::self() << endl;
+    db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << current << " / " << Thread::self() << endl;
+    db<Thread>(DEV) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << current << " / " << Thread::self() << endl;
+    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
 }
 
 void EDFEnergyAwareness::updateFrequency() {
