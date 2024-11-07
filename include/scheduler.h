@@ -78,7 +78,7 @@ public:
     static const unsigned int QUEUES = 1;
     struct EnergyAwarenessStatistics {  
         Tick job_release;
-        Tick thread_last_dispatch;
+        Tick thread_last_dispatch = 0L;
 
         Tick current_execution_time = 0L;
         Tick total_execution_time = 0L;

@@ -42,7 +42,7 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     if(event & LEAVE) {
         db<Thread>(DEV) << "Current execution time era " << _statistics.current_execution_time << " -> " << elapsed() << " - " << _statistics.thread_last_dispatch << endl;
-        _statistics.current_execution_time = elapsed() - _statistics.thread_last_dispatch;
+        _statistics.current_execution_time += elapsed() - _statistics.thread_last_dispatch;
         db<Thread>(DEV) << "Current execution time virou " << _statistics.current_execution_time << endl;
         db<Thread>(DEV) << "LEAVE";
     }
