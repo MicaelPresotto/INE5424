@@ -115,18 +115,16 @@ void GEDFEnergyAwareness::updateFrequency() {
 }
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
-    unsigned long smallest_queue = 0;
-    unsigned long min_avg_thread_time = 999UL;
-    for(unsigned long nqueue = 0; nqueue < CPU::cores(); nqueue++){
-        unsigned long avg_queue_thread_time = 0;
-        for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(nqueue); ++it){ 
-            //PROBLEM: it == end, guess it should be nullptr but it doesnt work
+    unsigned long smallest_queue = 0UL;
+    unsigned long min_avg_thread_time = 0UL;
+    for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
+        unsigned long avg_queue_thread_time = 0UL;
+        for(auto it = Thread::get_scheduler().begin(nqueue);;++it){ 
             auto current_element = *it;
-            if (current_element.rank() != IDLE) {
-                avg_queue_thread_time += current_element.object()->criterion().statistics().total_execution_time;
-            }
+            if (current_element.rank() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().total_execution_time;
+            if (it == Thread::get_scheduler().end(nqueue)) break;
         }
-        if(avg_queue_thread_time < min_avg_thread_time) {
+        if(avg_queue_thread_time < min_avg_thread_time || !min_avg_thread_time) {
             smallest_queue = nqueue;
             min_avg_thread_time = avg_queue_thread_time;
         }
