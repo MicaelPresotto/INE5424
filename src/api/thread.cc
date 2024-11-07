@@ -378,9 +378,9 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
     if(prev != next) {
         if(Criterion::dynamic) {
-            prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE);
+            prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE, prev);
             for_all_threads(Criterion::UPDATE);
-            next->criterion().handle(Criterion::AWARD  | Criterion::ENTER);
+            next->criterion().handle(Criterion::AWARD  | Criterion::ENTER, next);
         }
         if(prev->_state == RUNNING)
             prev->_state = READY;

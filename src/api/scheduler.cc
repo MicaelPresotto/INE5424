@@ -24,7 +24,7 @@ FCFS::FCFS(int p, Tn & ... an): Priority((p == IDLE) ? IDLE : Alarm::elapsed()) 
 // Since the definition above is only known to this unit, forcing its instantiation here so it gets emitted in scheduler.o for subsequent linking with other units is necessary.
 template FCFS::FCFS<>(int p);
 
-void EDFEnergyAwareness::handle(Event event) {
+void EDFEnergyAwareness::handle(Event event, Thread *current) {
     db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
     if(event & UPDATE) {
         db<Thread>(DEV) << "UPDATE";
@@ -58,10 +58,10 @@ void EDFEnergyAwareness::handle(Event event) {
     }
     
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
-    db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << Thread::self() << endl;
-    db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << Thread::self() << endl;
-    db<Thread>(DEV) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << Thread::self() << endl;
-    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << Thread::self() << endl << endl;
+    db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << current << endl;
+    db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << current << endl;
+    db<Thread>(DEV) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << current << endl;
+    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << current << endl << endl;
 }
 
 void EDFEnergyAwareness::updateFrequency() {
@@ -119,15 +119,19 @@ void GEDFEnergyAwareness::updateFrequency() {
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0UL;
     unsigned long min_avg_thread_time = 0UL;
+    bool first = true;
+
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
         unsigned long avg_queue_thread_time = 0UL;
         for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
         }
-        if(avg_queue_thread_time < min_avg_thread_time || !min_avg_thread_time) {
+
+        if(first || avg_queue_thread_time <= min_avg_thread_time) {
             smallest_queue = nqueue;
             min_avg_thread_time = avg_queue_thread_time;
+            first = false;
         }
     }
     return smallest_queue;

@@ -105,7 +105,7 @@ public:
     unsigned int queue() const { return 0; }
 
 protected:
-    void handle(Event event) {}
+    void handle(Event event, Thread *current=nullptr) {}
     void queue(unsigned int q) {}
     void update() {}
 
@@ -252,7 +252,7 @@ protected:
     Tick ticks(Microsecond time);
     Microsecond time(Tick ticks);
 
-    void handle(Event event);
+    void handle(Event event, Thread *current=nullptr);
 
     static Tick elapsed();
 
@@ -306,7 +306,7 @@ public:
     EDF(int p = APERIODIC): RT_Common(p) {}
     EDF(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, unsigned int cpu = ANY);
 
-    void handle(Event event);
+    void handle(Event event, Thread *current=nullptr);
 };
 
 
@@ -317,7 +317,7 @@ public:
     EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
     EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
 
-    void handle(Event event);
+    void handle(Event event, Thread *current=nullptr);
     void updateFrequency();
     unsigned long long calculateFrequency(unsigned long long frequency);
 };
@@ -344,9 +344,14 @@ public:
 public:
 
     EDFEnergyAwarenessAffinity(int p = APERIODIC)
-    : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) { db<CPU>(DEV) << "Define best queue: " << define_best_queue() << endl; }
+    : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) { 
+        db<EDFEnergyAwarenessAffinity>(DEV) << "Queue: " << current_queue() << endl;
+    }
 
-    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { db<CPU>(DEV) << " Qualquer coisa 2" << endl; }
+    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { 
+        _statistics.avg_execution_time = p;
+        db<EDFEnergyAwarenessAffinity>(DEV) << "Queue: " << current_queue() << endl;
+    }
 
     using Variable_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
@@ -364,7 +369,7 @@ public:
     LLF(int p = APERIODIC): RT_Common(p) {}
     LLF(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, unsigned int cpu = ANY);
 
-    void handle(Event event);
+    void handle(Event event, Thread* current=nullptr);
 };
 
 __END_SYS
