@@ -41,10 +41,8 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
         db<Thread>(DEV) << "ENTER";
     }
     if(event & LEAVE) {
-        db<Thread>(DEV) << "Current execution time era " << _statistics.current_execution_time << " -> " << elapsed() << " - " << _statistics.thread_last_dispatch << endl;
-        _statistics.current_execution_time += elapsed() - _statistics.thread_last_dispatch;
-        db<Thread>(DEV) << "Current execution time virou " << _statistics.current_execution_time << endl;
         db<Thread>(DEV) << "LEAVE";
+        _statistics.current_execution_time += elapsed() - _statistics.thread_last_dispatch;
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(DEV) << "RELEASE";
@@ -125,17 +123,22 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
 
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
         unsigned long avg_queue_thread_time = 0UL;
+        // if (Thread::get_scheduler().size(nqueue) <= 1) {
+        //     db<EDFEnergyAwarenessAffinity>(DEV) << "Automatically chosen CPU [" << nqueue << "]" << endl;
+        //     return nqueue;
+        // }
         for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
         }
-
-        if(first || avg_queue_thread_time <= min_avg_thread_time) {
+        if(first || avg_queue_thread_time < min_avg_thread_time) {
             smallest_queue = nqueue;
             min_avg_thread_time = avg_queue_thread_time;
             first = false;
         }
+        db<EDFEnergyAwarenessAffinity>(DEV) << "CPU [" << nqueue << "] = " << avg_queue_thread_time << " / " << Thread::get_scheduler().size(nqueue) << endl;
     }
+    db<EDFEnergyAwarenessAffinity>(DEV) << "Chosen CPU [" << smallest_queue << "]" << endl;
     return smallest_queue;
 }
 

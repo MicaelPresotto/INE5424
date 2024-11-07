@@ -345,12 +345,12 @@ public:
 
     EDFEnergyAwarenessAffinity(int p = APERIODIC)
     : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) { 
-        db<EDFEnergyAwarenessAffinity>(DEV) << "Queue: " << current_queue() << endl;
+        db<EDFEnergyAwarenessAffinity>(DEV) << "APERIODIC | Queue: " << current_queue() << endl;
     }
 
     EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { 
         _statistics.avg_execution_time = p;
-        db<EDFEnergyAwarenessAffinity>(DEV) << "Queue: " << current_queue() << endl;
+        db<EDFEnergyAwarenessAffinity>(DEV) << "Coloquei " << p << " | Queue: " << current_queue() << endl;
     }
 
     using Variable_Queue_Scheduler::queue;

@@ -93,7 +93,7 @@ int main() {
 
     for (i = 0; i < N_THREADS; i++) pthreads[i]->join();
     print_line();
-    for (i = 0; i < N_THREADS; i++) cout << "|           Deadlines perdidas p" << i+1 << ": " << pthreads[i]->get_deadline_losses() << "            |" << " " << pthreads[i] << endl;
+    for (i = 0; i < N_THREADS; i++) cout << "|           Deadlines perdidas p" << i+1 << ": " << pthreads[i]->get_deadline_losses() << "            |" << endl;
     print_line();
     for (i = 0; i < N_THREADS; i++) delete pthreads[i];
 
