@@ -54,12 +54,14 @@ void EDFEnergyAwareness::handle(Event event) {
         _statistics.total_execution_time += _statistics.current_execution_time;
         _statistics.current_execution_time = 0L;
         _statistics.executions += 1ULL;
+        _statistics.avg_execution_time = _statistics.total_execution_time / _statistics.executions;
     }
     
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
     db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << Thread::self() << endl;
     db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << Thread::self() << endl;
-    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << Thread::self() << endl;
+    db<Thread>(DEV) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << Thread::self() << endl;
+    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << Thread::self() << endl << endl;
 }
 
 void EDFEnergyAwareness::updateFrequency() {
@@ -121,7 +123,7 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
         unsigned long avg_queue_thread_time = 0UL;
         for(auto it = Thread::get_scheduler().begin(nqueue);;++it){ 
             auto current_element = *it;
-            if (current_element.rank() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().total_execution_time;
+            if (current_element.rank() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
             if (it == Thread::get_scheduler().end(nqueue)) break;
         }
         if(avg_queue_thread_time < min_avg_thread_time || !min_avg_thread_time) {
