@@ -119,7 +119,8 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long min_avg_thread_time = 999UL;
     for(unsigned long nqueue = 0; nqueue < CPU::cores(); nqueue++){
         unsigned long avg_queue_thread_time = 0;
-        for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){
+        for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(nqueue); ++it){ 
+            //PROBLEM: it == end, guess it should be nullptr but it doesnt work
             auto current_element = *it;
             if (current_element.rank() != IDLE) {
                 avg_queue_thread_time += current_element.object()->criterion().statistics().total_execution_time;

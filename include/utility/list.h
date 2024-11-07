@@ -1296,6 +1296,7 @@ public:
 
     Iterator begin() { return Iterator(_list[R::current_queue()].head()); }
     Iterator begin(unsigned int queue) { return Iterator(_list[queue].head()); }
+    Iterator end(unsigned int queue) { return Iterator(_list[queue].tail()); }
     Iterator end() { return Iterator(0); }
 
     Element * volatile & chosen() {
