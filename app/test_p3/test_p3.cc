@@ -13,23 +13,23 @@ Simple_Spin s;
 
 void log_stopped(int t) {
     s.acquire();
-    cout << "|        Thread " << t << " has finished executing.       |" << endl;
+    cout << " Thread " << t << " has finished executing (" << Thread::self()->statistics().executions + 1 << ")." << endl;
     s.release();
 }
 
 void print_line() {
-    cout << "+-----------------------------------------------+" << endl;
+    cout << "---------------------------------------------------------------------" << endl;
 }
 
 void banner() {
-    print_line();
-    cout << "|  _______        _             _____  _  _     |"    << endl;
-    cout << "| |__   __|      | |           |  __ \\| || |    |"   << endl;
-    cout << "|    | | ___  ___| |_ ___      | |__) | || |_   |"    << endl;
-    cout << "|    | |/ _ \\/ __| __/ _ \\     |  ___/|__   _|  |"  << endl;
-    cout << "|    | |  __/\\__ \\ ||  __/     | |       | |    |"  << endl;
-    cout << "|    |_|\\___||___/\\__\\___|     |_|       |_|    |" << endl;
-    print_line();
+    cout << "+-----------------------------------------------+"    << endl;
+    cout << "|   _______          _          _____  ____     |"    << endl;
+    cout << "|  |__   __|        | |        |  __ \\|___ \\    |"  << endl;
+    cout << "|     | |  ___  ___ | |_  ___  | |__) | __) |   |"    << endl;
+    cout << "|     | | / _ \\/ __|| __|/ _ \\ |  ___/ |__ <    |"  << endl;
+    cout << "|     | ||  __/\\__ \\| |_|  __/ | |     ___) |   |"  << endl;
+    cout << "|     |_| \\___||___/ \\__|\\___| |_|    |____/    |" << endl;
+    cout << "+-----------------------------------------------+"    << endl;
 }
 
 void function_sqrt() {
@@ -93,8 +93,7 @@ int main() {
 
     for (i = 0; i < N_THREADS; i++) pthreads[i]->join();
     print_line();
-    for (i = 0; i < N_THREADS; i++) cout << "|           Deadlines perdidas p" << i+1 << ": " << pthreads[i]->get_deadline_losses() << "            |" << endl;
-    print_line();
+    for (i = 0; i < N_THREADS; i++) cout << " PT " << i+1 << ": Deadlines perdidas " << pthreads[i]->get_deadline_losses() << "; Execucoes " << pthreads[i]->statistics().executions << "; Tempo medio execucao " << pthreads[i]->statistics().avg_execution_time << endl;
     for (i = 0; i < N_THREADS; i++) delete pthreads[i];
 
     return 0;
