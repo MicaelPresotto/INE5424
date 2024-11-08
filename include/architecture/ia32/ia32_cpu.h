@@ -373,6 +373,15 @@ public:
         }
         wrmsr(CLOCK_MODULATION, dc);
     }
+
+    static Hertz get_clock_step() {
+        if (_cpu_current_clock == (_cpu_clock * 1875ULL / 10000ULL)) return 1ULL;
+        if (_cpu_current_clock == max_clock()) return 13ULL;
+        return ((_cpu_current_clock) / (_cpu_clock * 625ULL / 10000ULL)) - 3ULL;
+        // 18.75 25.00 31.25 37.50 43.75 50.00 56.25 62.50 68.75 75.00 81.25 87.50 93.75
+        //   1     2     3     4     5     6     7     8     9     10    11    12   13
+    }
+
     static Hertz max_clock() { return _cpu_clock; }
     static Hertz min_clock() { return _cpu_clock * 1250ULL / 10000ULL;}
 

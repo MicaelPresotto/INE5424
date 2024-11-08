@@ -42,7 +42,7 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     if(event & LEAVE) {
         db<Thread>(DEV) << "LEAVE";
-        _statistics.current_execution_time += elapsed() - _statistics.thread_last_dispatch;
+        _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * CPU::get_clock_step();
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(DEV) << "RELEASE";
@@ -64,39 +64,10 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
 }
 
-void EDFEnergyAwareness::updateFrequency() {
-    unsigned long long thread_last_dispatch = time(_statistics.thread_last_dispatch);
-    unsigned long long job_release = time(_statistics.job_release);
-    unsigned long long deadline = period();
-    unsigned long long percentage = 0;
-    unsigned long long elapsed_time = job_release - thread_last_dispatch;
-
-    if (elapsed_time && deadline) percentage = (100ULL*elapsed_time) / deadline;
-
-    unsigned long new_freq = calculateFrequency(percentage);
-    CPU::clock(new_freq);
-}
-
-unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
-    unsigned long long factor;
-
-    if (percentage <= 10) factor = 0;
-    else if (percentage <= 20) factor = 357ULL;
-    else if (percentage <= 30) factor = 485ULL;
-    else if (percentage <= 40) factor = 587ULL;
-    else if (percentage <= 50) factor = 669ULL;
-    else if (percentage <= 60) factor = 735ULL;
-    else if (percentage <= 70) factor = 787ULL;
-    else if (percentage <= 80) factor = 829ULL;
-    else factor = 1000ULL;
-
-    return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
-}
-
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
-void GEDFEnergyAwareness::updateFrequency() {
-    CPU::finc(CPU::last_update[CPU::id()]);
+void EDFEnergyAwareness::updateFrequency() {
+    CPU::last_update[CPU::id()]++;
     db<CPU>(DEV) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
     if (CPU::last_update[CPU::id()] < 2) return;
     
@@ -115,6 +86,23 @@ void GEDFEnergyAwareness::updateFrequency() {
 
     db<CPU>(DEV) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%) | " << percentage << " %" << endl;
 }
+
+unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
+    unsigned long long factor;
+
+    if (percentage <= 10) factor = 0;
+    else if (percentage <= 20) factor = 357ULL;
+    else if (percentage <= 30) factor = 485ULL;
+    else if (percentage <= 40) factor = 587ULL;
+    else if (percentage <= 50) factor = 669ULL;
+    else if (percentage <= 60) factor = 735ULL;
+    else if (percentage <= 70) factor = 787ULL;
+    else if (percentage <= 80) factor = 829ULL;
+    else factor = 1000ULL;
+
+    return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
+}
+
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0UL;
