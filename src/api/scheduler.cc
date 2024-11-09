@@ -103,6 +103,96 @@ unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long per
     return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
 }
 
+void EDFEnergyAwarenessAffinity::updateFrequency() {
+    // Botar lista sem graça
+    int iterations = 3;
+    Tick current_time = elapsed();
+    Tick total_time = 0;
+    bool fudeo = false;
+    unsigned int nqueue = CPU::id();
+
+    // Omitindo a thread que está executando
+    for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+        auto current_element = (*it).object();
+
+        if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
+            continue;
+
+        Tick remaining_time = current_element->get_remaining_time();
+        int current_deadline = int(current_element->criterion());
+        total_time += remaining_time;
+
+        if (current_time + total_time > current_deadline) {
+            fudeo = true;
+            break;
+        }
+    }
+
+    long current_step = CPU::get_clock_step();
+    int new_step = -1;
+
+    if (fudeo) {
+        for (long next_step = current_step + 1; next_step < 14; next_step++) {
+            total_time = 0;
+            for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+                auto current_element = (*it).object();
+
+                if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
+                    continue;
+
+                long diff = next_step - current_step;
+                unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL - diff * 625ULL) / 100ULL;
+                int current_deadline = int(current_element->criterion());
+                total_time += new_execution_time;
+
+                if (current_time + total_time > current_deadline) {
+                    break;
+                }
+
+                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) {
+                    new_step = next_step;
+                }
+
+            }
+
+            if (new_step != -1) {
+                break;
+            }
+        }
+    } else {
+        new_step = current_step;
+        for (long next_step = current_step - 1; 0 < next_step; next_step--) {
+            total_time = 0;
+            for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+                auto current_element = (*it).object();
+
+                if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
+                    continue;
+
+                long diff = current_step - next_step;
+                unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL + diff * 625ULL) / 100ULL;
+                int current_deadline = int(current_element->criterion());
+                total_time += new_execution_time;
+
+                if (current_time + total_time > current_deadline) {
+                    break;
+                }
+
+                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) {
+                    new_step = next_step;
+                }
+            }
+        }
+    }
+
+    if (new_step == -1 || new_step == 13) {  // faz o L
+        CPU::clock(CPU::max_clock());
+    } else {
+        Hertz new_freq = ((new_step - 1) * 625ULL + 1875ULL) * (CPU::clock() / 100ULL);
+        CPU::clock(new_freq);
+    }
+}
+
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0UL;
@@ -111,10 +201,6 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
 
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
         unsigned long avg_queue_thread_time = 0UL;
-        // if (Thread::get_scheduler().size(nqueue) <= 1) {
-        //     db<EDFEnergyAwarenessAffinity>(DEV) << "Automatically chosen CPU [" << nqueue << "]" << endl;
-        //     return nqueue;
-        // }
         for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;

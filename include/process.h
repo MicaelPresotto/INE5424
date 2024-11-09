@@ -36,6 +36,7 @@ protected:
 
     typedef CPU::Log_Addr Log_Addr;
     typedef CPU::Context Context;
+    typedef Timer_Common::Tick Tick;
 
 public:
     // Thread State
@@ -97,6 +98,13 @@ public:
     static Thread * volatile self() { return running(); }
     static void yield();
     static void exit(int status = 0);
+
+    Tick get_remaining_time() {
+        if (criterion() != IDLE && criterion().periodic())
+            return criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
+
+        return 0;
+    }
 
 protected:
     void constructor_prologue(unsigned int stack_size);
