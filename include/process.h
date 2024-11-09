@@ -100,10 +100,8 @@ public:
     static void exit(int status = 0);
 
     Tick get_remaining_time() {
-        if (criterion() != IDLE && criterion().periodic())
-            return criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
+        return criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
 
-        return 0;
     }
 
 protected:

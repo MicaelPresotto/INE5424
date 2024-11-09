@@ -22,7 +22,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const bool monitored = true;
     static const bool debugged = true;
     static const bool hysterically_debugged = false;
-    static const bool development = false;
+    static const bool development = true;
 };
 
 

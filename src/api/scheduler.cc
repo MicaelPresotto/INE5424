@@ -27,30 +27,30 @@ template FCFS::FCFS<>(int p);
 void EDFEnergyAwareness::handle(Event event, Thread *current) {
     db<Thread>(TRC) << "RT::handle(this=" << this << ",e=";
     if(event & UPDATE) {
-        db<Thread>(DEV) << "UPDATE";
+        db<Thread>(TRC) << "UPDATE";
     }
     if(event & CREATE) {
-        db<Thread>(DEV) << "CREATE";
+        db<Thread>(TRC) << "CREATE";
     }
     if(event & FINISH) {
-        db<Thread>(DEV) << "FINISH";
+        db<Thread>(TRC) << "FINISH";
         // _statistics.total_execution_time += _statistics.current_execution_time;
         // _statistics.current_execution_time = 0;
     }
     if(event & ENTER) {
-        db<Thread>(DEV) << "ENTER";
+        db<Thread>(TRC) << "ENTER";
     }
     if(event & LEAVE) {
-        db<Thread>(DEV) << "LEAVE";
+        db<Thread>(TRC) << "LEAVE";
         _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * (CPU::clock() * 100ULL / CPU::max_clock());
     }
     if(periodic() && (event & JOB_RELEASE)) {
-        db<Thread>(DEV) << "RELEASE";
+        db<Thread>(TRC) << "RELEASE";
         _priority = elapsed() + _deadline;
         _statistics.job_release = elapsed();
     }
     if(periodic() && (event & JOB_FINISH)) {
-        db<Thread>(DEV) << "WAIT";
+        db<Thread>(TRC) << "WAIT";
         _statistics.total_execution_time += _statistics.current_execution_time;
         _statistics.current_execution_time = 0L;
         _statistics.executions += 1ULL;
@@ -58,17 +58,17 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
-    db<Thread>(DEV) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << current << " / " << Thread::self() << endl;
-    db<Thread>(DEV) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << current << " / " << Thread::self() << endl;
-    db<Thread>(DEV) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << current << " / " << Thread::self() << endl;
-    db<Thread>(DEV) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
+    db<Thread>(TRC) << " | Tempo de execução total: " << _statistics.total_execution_time << " | " << current << " / " << Thread::self() << endl;
+    db<Thread>(TRC) << "Tempo de execução atual: " << _statistics.current_execution_time << " | " << current << " / " << Thread::self() << endl;
+    db<Thread>(TRC) << "Tempo medio de execução: " << _statistics.avg_execution_time << " | " << current << " / " << Thread::self() << endl;
+    db<Thread>(TRC) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
 }
 
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
 void EDFEnergyAwareness::updateFrequency() {
     CPU::last_update[CPU::id()]++;
-    db<CPU>(DEV) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
     if (CPU::last_update[CPU::id()] < 2) return;
     
     CPU::last_update[CPU::id()] = 0;
@@ -84,7 +84,7 @@ void EDFEnergyAwareness::updateFrequency() {
     unsigned long new_freq = calculateFrequency(percentage);
     CPU::clock(new_freq);
 
-    db<CPU>(DEV) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%) | " << percentage << " %" << endl;
+    db<CPU>(TRC) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%) | " << percentage << " %" << endl;
 }
 
 unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
@@ -104,15 +104,15 @@ unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long per
 }
 
 void EDFEnergyAwarenessAffinity::updateFrequency() {
-    // Botar lista sem graça
+    // Botar lista que faz o dispatch a cada X interacoes
     int iterations = 3;
     Tick current_time = elapsed();
     Tick total_time = 0;
-    bool fudeo = false;
+    bool is_deadline_lost = false;
     unsigned int nqueue = CPU::id();
 
     // Omitindo a thread que está executando
-    for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+    for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, --iterations){
         auto current_element = (*it).object();
 
         if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
@@ -121,17 +121,23 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         Tick remaining_time = current_element->get_remaining_time();
         int current_deadline = int(current_element->criterion());
         total_time += remaining_time;
+        unsigned long long total_time_cpu_percentage = CPU::get_cpu_percentage(total_time);
 
-        if (current_time + total_time > current_deadline) {
-            fudeo = true;
+        db<CPU>(DEV) << " Current time: " << current_time << " Total time: " << total_time_cpu_percentage << " Current deadline: " << current_deadline << endl;
+
+        if (current_time + total_time_cpu_percentage > (unsigned long long)current_deadline) {
+            db<CPU>(DEV) << "Fudeo" << endl;
+            is_deadline_lost = true;
             break;
         }
     }
 
     long current_step = CPU::get_clock_step();
+
+    db<CPU>(DEV) << "Current step: " << current_step << endl;
     int new_step = -1;
 
-    if (fudeo) {
+    if (is_deadline_lost) {
         for (long next_step = current_step + 1; next_step < 14; next_step++) {
             total_time = 0;
             for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
@@ -142,10 +148,15 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
 
                 long diff = next_step - current_step;
                 unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL - diff * 625ULL) / 100ULL;
+
+                db<CPU>(DEV) << "New execution time: " << new_execution_time << endl;
+
                 int current_deadline = int(current_element->criterion());
                 total_time += new_execution_time;
+                unsigned long long total_time_cpu_percentage = CPU::get_cpu_percentage(total_time);
 
-                if (current_time + total_time > current_deadline) {
+                if (current_time + total_time_cpu_percentage > (unsigned long long)current_deadline) {
+                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << total_time_cpu_percentage << " Current deadline: " << current_deadline << endl;
                     break;
                 }
 
@@ -171,10 +182,15 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
 
                 long diff = current_step - next_step;
                 unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL + diff * 625ULL) / 100ULL;
+
+                db<CPU>(DEV) << "New execution time: " << new_execution_time << endl;
+
                 int current_deadline = int(current_element->criterion());
                 total_time += new_execution_time;
+                unsigned long long total_time_cpu_percentage = CPU::get_cpu_percentage(total_time);
 
-                if (current_time + total_time > current_deadline) {
+                if (current_time + total_time_cpu_percentage > (unsigned long long)current_deadline) {
+                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << total_time_cpu_percentage << " Current deadline: " << current_deadline << endl;
                     break;
                 }
 
@@ -184,15 +200,14 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
             }
         }
     }
-
+    db<CPU>(DEV) << "New step: " << new_step << endl;
     if (new_step == -1 || new_step == 13) {  // faz o L
         CPU::clock(CPU::max_clock());
     } else {
-        Hertz new_freq = ((new_step - 1) * 625ULL + 1875ULL) * (CPU::clock() / 100ULL);
+        Hertz new_freq = CPU::get_actual_frequency(new_step);
         CPU::clock(new_freq);
     }
 }
-
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0UL;

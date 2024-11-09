@@ -382,6 +382,14 @@ public:
         //   1     2     3     4     5     6     7     8     9     10    11    12   13
     }
 
+    static unsigned long long get_cpu_percentage(unsigned long long time){
+        return time / clock() * 100ULL / max_clock();
+    }
+
+   static unsigned long long get_actual_frequency(unsigned long long step){
+        return ((step - 1) * 625ULL + 1875ULL) * (CPU::clock() / 100ULL);
+    }
+
     static Hertz max_clock() { return _cpu_clock; }
     static Hertz min_clock() { return _cpu_clock * 1250ULL / 10000ULL;}
 
