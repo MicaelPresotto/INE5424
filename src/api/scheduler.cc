@@ -64,14 +64,14 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     db<Thread>(TRC) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
 }
 
-// int CPU::last_update[Traits<Machine>::CPUS] = {0}; TODO: Ta pronto, so descomentar pra funcionar
+// int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
 void EDFEnergyAwarenessAffinity::updateFrequency() {
-    // CPU::last_update[CPU::id()]++; TODO: Ta pronto, so descomentar pra funcionar
-    // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl; TODO: Ta pronto, so descomentar pra funcionar
-    // if (CPU::last_update[CPU::id()] < 2) return; TODO: Ta pronto, so descomentar pra funcionar
+    // CPU::last_update[CPU::id()]++;
+    // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    // if (CPU::last_update[CPU::id()] < 2) return;
     
-    // CPU::last_update[CPU::id()] = 0; TODO: Ta pronto, so descomentar pra funcionar
+    // CPU::last_update[CPU::id()] = 0;
 
     const int threads_ahead = 3;
     const Tick current_time = elapsed();
@@ -99,8 +99,9 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
     }
 
     long current_step = CPU::get_clock_step();
-
+    db<CPU>(DEV) << "Is deadline lost: " << is_deadline_lost << endl;
     db<CPU>(DEV) << "Current step: " << current_step << endl;
+    // no test_p3 parece que ele sempre fica com o step em 13 e nunca abaixa, o deadline lost sempre eh falso e ele nunca consegue abaixar um step
     int new_step = -1;
 
     if (is_deadline_lost) {
@@ -120,7 +121,9 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
                 int current_deadline = int(current_thread->criterion());
 
                 if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
+                     db<CPU>(DEV) << "Nao vai dar par abaixar nenhum step " << endl;
                     db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
+                    // same shit here
                     break;
                 }
 
@@ -139,6 +142,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         for (long next_step = current_step - 1; 0 < next_step; next_step--) {
             total_time = 0;
             for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+                // nao esta sendo feito algumas execucoes a mais atoa com o break ali da linha 158?
                 auto current_element = (*it).object();
 
                 if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
@@ -173,6 +177,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
 }
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
+    // a unica funcao q ta funcioando, advinha qm fez
     unsigned long smallest_queue = 0UL;
     unsigned long min_avg_thread_time = 0UL;
     bool first = true;
@@ -188,9 +193,9 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
             min_avg_thread_time = avg_queue_thread_time;
             first = false;
         }
-        // db<EDFEnergyAwarenessAffinity>(DEV) << "CPU [" << nqueue << "] = " << avg_queue_thread_time << " / " << Thread::get_scheduler().size(nqueue) << endl;
+        db<EDFEnergyAwarenessAffinity>(DEV) << "define_best_queue: " << "CPU [" << nqueue << "] = " << avg_queue_thread_time << " / " << Thread::get_scheduler().size(nqueue) << endl;
     }
-    // db<EDFEnergyAwarenessAffinity>(DEV) << "Chosen CPU [" << smallest_queue << "]" << endl;
+    db<EDFEnergyAwarenessAffinity>(DEV) << "define_best_queue: " << "Chosen CPU [" << smallest_queue << "]" << endl;
     return smallest_queue;
 }
 
