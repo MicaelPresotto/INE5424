@@ -9,7 +9,11 @@ void Machine::pre_init(System_Info * si)
 
     if(CPU::id() == CPU::BSP)
         Display::init();
-    CPU::smp_barrier_init(si->bm.n_cpus);
+    if(multicore){
+        CPU::smp_barrier_init(si->bm.n_cpus);
+        CPU::smp_barrier();
+    }   
+
 
     db<Init, Machine>(TRC) << "Machine::pre_init()" << endl;
 }

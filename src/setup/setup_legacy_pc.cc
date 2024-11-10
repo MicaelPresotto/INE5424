@@ -189,6 +189,8 @@ Setup::Setup(char * boot_image)
 
     }
 
+    CPU::smp_barrier(si->bm.n_cpus);
+
     db<Setup>(INF) << "Setup::pc=" << CPU::pc() << endl;
     db<Setup>(INF) << "Setup::sp=" << CPU::sp() << endl;
     db<Setup>(INF) << "Setup::cr0=" << reinterpret_cast<void *>(CPU::cr0()) << endl;
