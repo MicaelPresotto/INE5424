@@ -42,7 +42,7 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     if(event & LEAVE) {
         db<Thread>(TRC) << "LEAVE";
-        _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * (CPU::clock() * 100ULL / CPU::max_clock());
+        _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * CPU::get_clock_percentage();
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
@@ -64,69 +64,35 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     db<Thread>(TRC) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
 }
 
-int CPU::last_update[Traits<Machine>::CPUS] = {0};
-
-void EDFEnergyAwareness::updateFrequency() {
-    CPU::last_update[CPU::id()]++;
-    db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
-    if (CPU::last_update[CPU::id()] < 2) return;
-    
-    CPU::last_update[CPU::id()] = 0;
-
-    unsigned long long thread_last_dispatch = time(_statistics.thread_last_dispatch);
-    unsigned long long job_release = time(_statistics.job_release);
-    unsigned long long deadline = period();
-    unsigned long long percentage = 0;
-    unsigned long long elapsed_time = thread_last_dispatch - job_release;
-
-    if (elapsed_time && deadline) percentage = (100ULL*elapsed_time) / deadline;
-
-    unsigned long new_freq = calculateFrequency(percentage);
-    CPU::clock(new_freq);
-
-    db<CPU>(TRC) << "UPDATE FREQ [" << CPU::id() << "] -> " << new_freq  << "(" << (new_freq * 100ULL) / CPU::max_clock() << "%) | " << percentage << " %" << endl;
-}
-
-unsigned long long EDFEnergyAwareness::calculateFrequency(unsigned long long percentage) {
-    unsigned long long factor;
-
-    if (percentage <= 10) factor = 0;
-    else if (percentage <= 20) factor = 357ULL;
-    else if (percentage <= 30) factor = 485ULL;
-    else if (percentage <= 40) factor = 587ULL;
-    else if (percentage <= 50) factor = 669ULL;
-    else if (percentage <= 60) factor = 735ULL;
-    else if (percentage <= 70) factor = 787ULL;
-    else if (percentage <= 80) factor = 829ULL;
-    else factor = 1000ULL;
-
-    return CPU::min_clock() + (((CPU::max_clock() - CPU::min_clock()) * factor)/1000ULL);
-}
+// int CPU::last_update[Traits<Machine>::CPUS] = {0}; TODO: Ta pronto, so descomentar pra funcionar
 
 void EDFEnergyAwarenessAffinity::updateFrequency() {
-    // Botar lista que faz o dispatch a cada X interacoes
-    int iterations = 3;
-    Tick current_time = elapsed();
+    // CPU::last_update[CPU::id()]++; TODO: Ta pronto, so descomentar pra funcionar
+    // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl; TODO: Ta pronto, so descomentar pra funcionar
+    // if (CPU::last_update[CPU::id()] < 2) return; TODO: Ta pronto, so descomentar pra funcionar
+    
+    // CPU::last_update[CPU::id()] = 0; TODO: Ta pronto, so descomentar pra funcionar
+
+    const int threads_ahead = 3;
+    const Tick current_time = elapsed();
     Tick total_time = 0;
     bool is_deadline_lost = false;
-    unsigned int nqueue = CPU::id();
-
+    int iterations = threads_ahead;
     // Omitindo a thread que está executando
-    for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, --iterations){
-        auto current_element = (*it).object();
+    for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, --iterations){
+        auto current_thread = (*it).object();
 
-        if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
-            continue;
+        if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
 
-        Tick remaining_time = current_element->get_remaining_time();
-        int current_deadline = int(current_element->criterion());
+        Tick remaining_time = current_thread->get_remaining_time();
         total_time += remaining_time;
-        unsigned long long total_time_cpu_percentage = CPU::get_cpu_percentage(total_time);
 
-        db<CPU>(DEV) << " Current time: " << current_time << " Total time: " << total_time_cpu_percentage << " Current deadline: " << current_deadline << endl;
+        Tick deadline = int(current_thread->criterion());
 
-        if (current_time + total_time_cpu_percentage > (unsigned long long)current_deadline) {
-            db<CPU>(DEV) << "Fudeo" << endl;
+        db<CPU>(DEV) << "Remaining time: " << remaining_time / CPU::get_clock_percentage() << " Current time: " << current_time << " Total time: " << total_time / CPU::get_clock_percentage() << " Current deadline: " << deadline << endl;
+
+        if (current_time + (total_time / CPU::get_clock_percentage()) > deadline) {
+            db<CPU>(DEV) << "VAI PERDER DEADLINE" << endl;
             is_deadline_lost = true;
             break;
         }
@@ -140,23 +106,21 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
     if (is_deadline_lost) {
         for (long next_step = current_step + 1; next_step < 14; next_step++) {
             total_time = 0;
-            for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
-                auto current_element = (*it).object();
+            for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+                auto current_thread = (*it).object();
 
-                if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
-                    continue;
+                if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
 
                 long diff = next_step - current_step;
-                unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL - diff * 625ULL) / 100ULL;
+                unsigned long long new_execution_time = current_thread->criterion().statistics().avg_execution_time * (10000ULL - diff * 625ULL) / 100ULL;
+                total_time += new_execution_time;
 
                 db<CPU>(DEV) << "New execution time: " << new_execution_time << endl;
 
-                int current_deadline = int(current_element->criterion());
-                total_time += new_execution_time;
-                unsigned long long total_time_cpu_percentage = CPU::get_cpu_percentage(total_time);
+                int current_deadline = int(current_thread->criterion());
 
-                if (current_time + total_time_cpu_percentage > (unsigned long long)current_deadline) {
-                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << total_time_cpu_percentage << " Current deadline: " << current_deadline << endl;
+                if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
+                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
                     break;
                 }
 
@@ -174,7 +138,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         new_step = current_step;
         for (long next_step = current_step - 1; 0 < next_step; next_step--) {
             total_time = 0;
-            for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+            for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
                 auto current_element = (*it).object();
 
                 if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
@@ -182,15 +146,14 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
 
                 long diff = current_step - next_step;
                 unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL + diff * 625ULL) / 100ULL;
+                total_time += new_execution_time;
 
                 db<CPU>(DEV) << "New execution time: " << new_execution_time << endl;
 
                 int current_deadline = int(current_element->criterion());
-                total_time += new_execution_time;
-                unsigned long long total_time_cpu_percentage = CPU::get_cpu_percentage(total_time);
 
-                if (current_time + total_time_cpu_percentage > (unsigned long long)current_deadline) {
-                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << total_time_cpu_percentage << " Current deadline: " << current_deadline << endl;
+                if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
+                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
                     break;
                 }
 
@@ -201,10 +164,10 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         }
     }
     db<CPU>(DEV) << "New step: " << new_step << endl;
-    if (new_step == -1 || new_step == 13) {  // faz o L
+    if (new_step == -1 || new_step == 13) {
         CPU::clock(CPU::max_clock());
     } else {
-        Hertz new_freq = CPU::get_actual_frequency(new_step);
+        Hertz new_freq = CPU::get_frequency_by_step(new_step);
         CPU::clock(new_freq);
     }
 }
@@ -225,9 +188,9 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
             min_avg_thread_time = avg_queue_thread_time;
             first = false;
         }
-        db<EDFEnergyAwarenessAffinity>(DEV) << "CPU [" << nqueue << "] = " << avg_queue_thread_time << " / " << Thread::get_scheduler().size(nqueue) << endl;
+        // db<EDFEnergyAwarenessAffinity>(DEV) << "CPU [" << nqueue << "] = " << avg_queue_thread_time << " / " << Thread::get_scheduler().size(nqueue) << endl;
     }
-    db<EDFEnergyAwarenessAffinity>(DEV) << "Chosen CPU [" << smallest_queue << "]" << endl;
+    // db<EDFEnergyAwarenessAffinity>(DEV) << "Chosen CPU [" << smallest_queue << "]" << endl;
     return smallest_queue;
 }
 

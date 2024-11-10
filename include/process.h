@@ -101,7 +101,6 @@ public:
 
     Tick get_remaining_time() {
         return criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
-
     }
 
 protected:
