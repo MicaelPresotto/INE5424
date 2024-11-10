@@ -34,11 +34,12 @@ void Thread::init()
         new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), main);
     }
 
-    if(CPU::id() != CPU::BSP) CPU::smp_barrier();
+    if (CPU::id() != CPU::BSP) CPU::smp_barrier();
+
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
     new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), &Thread::idle);
-    
-    if(CPU::id() == CPU::BSP) CPU::smp_barrier();
+
+    if (CPU::id() == CPU::BSP) CPU::smp_barrier();
 
     // The installation of the scheduler timer handler does not need to be done after the
     // creation of threads, since the constructor won't call reschedule() which won't call
@@ -46,6 +47,7 @@ void Thread::init()
     // Letting reschedule() happen during thread creation is also harmless, since MAIN is
     // created first and dispatch won't replace it nor by itself neither by IDLE (which
     // has a lower priority)
+    CPU::smp_barrier();
     if(Criterion::timed && (CPU::id() == CPU::BSP))
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 

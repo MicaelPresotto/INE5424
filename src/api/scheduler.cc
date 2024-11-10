@@ -87,7 +87,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         Tick remaining_time = current_thread->get_remaining_time();
         total_time += remaining_time;
 
-        Tick deadline = int(current_thread->criterion());
+        Tick deadline = int(current_thread->criterion()); // aqui eh Tick e nos outros locais eh int, linha 121 e 156
 
         db<CPU>(DEV) << "Remaining time: " << remaining_time / CPU::get_clock_percentage() << " Current time: " << current_time << " Total time: " << total_time / CPU::get_clock_percentage() << " Current deadline: " << deadline << endl;
 
@@ -121,9 +121,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
                 int current_deadline = int(current_thread->criterion());
 
                 if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
-                     db<CPU>(DEV) << "Nao vai dar par abaixar nenhum step " << endl;
                     db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
-                    // same shit here
                     break;
                 }
 
@@ -141,6 +139,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         new_step = current_step;
         for (long next_step = current_step - 1; 0 < next_step; next_step--) {
             total_time = 0;
+            bool breaker = false;
             for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
                 // nao esta sendo feito algumas execucoes a mais atoa com o break ali da linha 158?
                 auto current_element = (*it).object();
@@ -157,6 +156,8 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
                 int current_deadline = int(current_element->criterion());
 
                 if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
+                    db<CPU>(DEV) << "Nao vai dar pra abaixar nenhum step " << endl;
+                    breaker = true;
                     db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
                     break;
                 }
@@ -165,10 +166,11 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
                     new_step = next_step;
                 }
             }
+            if(breaker) break;
         }
     }
     db<CPU>(DEV) << "New step: " << new_step << endl;
-    if (new_step == -1 || new_step == 13) {
+    if (new_step == -1 || new_step == 13) { // nunca vai ser -1 ne, pelas linhas 129 e 139
         CPU::clock(CPU::max_clock());
     } else {
         Hertz new_freq = CPU::get_frequency_by_step(new_step);
