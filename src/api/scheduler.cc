@@ -51,10 +51,15 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     if(periodic() && (event & JOB_FINISH)) {
         db<Thread>(TRC) << "WAIT";
-        _statistics.total_execution_time += _statistics.current_execution_time;
-        _statistics.current_execution_time = 0L;
+
+        if (_statistics.executions == 0)
+            _statistics.total_execution_time = _statistics.current_execution_time;
+        else
+            _statistics.total_execution_time += _statistics.current_execution_time;        
+
         _statistics.executions += 1ULL;
         _statistics.avg_execution_time = _statistics.total_execution_time / _statistics.executions;
+        _statistics.current_execution_time = 0L;
     }
     
     db<Thread>(TRC) << ") => {i=" << _priority << ",p=" << _period << ",d=" << _deadline << ",c=" << _capacity << "}" << endl;
@@ -103,6 +108,7 @@ void EDFEnergyAwareness::updateFrequency() {
     db<CPU>(DEV) << "Current step: " << current_step << endl;
     // no test_p3 parece que ele sempre fica com o step em 13 e nunca abaixa, o deadline lost sempre eh falso e ele nunca consegue abaixar um step
     int new_step = -1;
+    iterations = threads_ahead;
 
     if (is_deadline_lost) {
         for (long next_step = current_step + 1; next_step < 14; next_step++) {
@@ -128,7 +134,6 @@ void EDFEnergyAwareness::updateFrequency() {
                 if (it + 1 == Thread::get_scheduler().end() || iterations == 1) { //REVISAR, ta indo sempre -1 pro new_step
                     new_step = next_step;
                 }
-
             }
 
             if (new_step != -1) {
