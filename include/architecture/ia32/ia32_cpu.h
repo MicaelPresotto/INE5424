@@ -387,8 +387,8 @@ public:
     }
 
    static Hertz get_frequency_by_step(unsigned long long step){
-        if (step == 13ULL) return _cpu_clock; //return cpu max clock
-        return ((step - 1ULL) * 625ULL + 1875ULL) * (_cpu_clock / 100ULL);
+        if (step == 13ULL) step = 14ULL;
+        return ((step - 1ULL) * 625ULL + 1875ULL) * (_cpu_clock / 10000ULL);
     }
 
     static Hertz max_clock() { return _cpu_clock; }
