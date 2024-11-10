@@ -182,7 +182,6 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
 
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
         unsigned long avg_queue_thread_time = 0UL;
-        if(Thread::get_scheduler().size(nqueue) == 0) continue;
         for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
