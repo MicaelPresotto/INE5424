@@ -319,7 +319,6 @@ public:
 
     void handle(Event event, Thread *current=nullptr);
     void updateFrequency();
-    unsigned long long calculateFrequency(unsigned long long frequency);
 };
 
 
@@ -356,7 +355,6 @@ public:
     static unsigned int current_queue() { return CPU::id(); }
 
     unsigned long define_best_queue();
-    void updateFrequency();
 };
 
 // Least Laxity First

@@ -66,7 +66,7 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
 
 // int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
-void EDFEnergyAwarenessAffinity::updateFrequency() {
+void EDFEnergyAwareness::updateFrequency() {
     // CPU::last_update[CPU::id()]++;
     // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
     // if (CPU::last_update[CPU::id()] < 2) return;
@@ -79,7 +79,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
     bool is_deadline_lost = false;
     int iterations = threads_ahead;
     // Omitindo a thread que está executando
-    for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, --iterations){
+    for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations){
         auto current_thread = (*it).object();
 
         if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
@@ -107,7 +107,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
     if (is_deadline_lost) {
         for (long next_step = current_step + 1; next_step < 14; next_step++) {
             total_time = 0;
-            for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+            for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
                 auto current_thread = (*it).object();
 
                 if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
@@ -125,7 +125,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
                     break;
                 }
 
-                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) {
+                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) { //REVISAR, ta indo sempre -1 pro new_step
                     new_step = next_step;
                 }
 
@@ -140,7 +140,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         for (long next_step = current_step - 1; 0 < next_step; next_step--) {
             total_time = 0;
             bool breaker = false;
-            for(auto it = Thread::get_scheduler().begin(CPU::id()); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
+            for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
                 // nao esta sendo feito algumas execucoes a mais atoa com o break ali da linha 158?
                 auto current_element = (*it).object();
 
@@ -162,7 +162,7 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
                     break;
                 }
 
-                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) {
+                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) { //REVISAR, ta indo sempre -1 pro new_step
                     new_step = next_step;
                 }
             }
@@ -170,12 +170,8 @@ void EDFEnergyAwarenessAffinity::updateFrequency() {
         }
     }
     db<CPU>(DEV) << "New step: " << new_step << endl;
-    if (new_step == -1 || new_step == 13) { // nunca vai ser -1 ne, pelas linhas 129 e 139
-        CPU::clock(CPU::max_clock());
-    } else {
-        Hertz new_freq = CPU::get_frequency_by_step(new_step);
-        CPU::clock(new_freq);
-    }
+    Hertz new_freq = CPU::get_frequency_by_step(new_step);
+    CPU::clock(new_freq);
 }
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
@@ -186,6 +182,7 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
 
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
         unsigned long avg_queue_thread_time = 0UL;
+        if(Thread::get_scheduler().size(nqueue) == 0) continue;
         for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
