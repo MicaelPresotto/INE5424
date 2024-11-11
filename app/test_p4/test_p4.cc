@@ -118,8 +118,9 @@ int main() {
 
     int randoms[9] = {0};
     for (int i = 0; i < N_THREADS; i++) randoms[i] = Math::abs((Random::random() % 500000)) + 900000;
-    for (int i = 0; i < N_THREADS; i++) cout << "Period "<< i+1 << " = " << randoms[i] << endl;
-
+    for (int i = 0; i < N_THREADS; i++) cout << " Period "<< i+1 << " = " << randoms[i] << endl;
+    print_line();
+    
     pthreads[0] = new Periodic_Thread(RTConf(randoms[0], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sqrt);
     pthreads[1] = new Periodic_Thread(RTConf(randoms[1], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_delay);
     pthreads[2] = new Periodic_Thread(RTConf(randoms[2], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pass);
