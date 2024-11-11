@@ -380,6 +380,11 @@ public:
         // 18.75 25.00 31.25 37.50 43.75 50.00 56.25 62.50 68.75 75.00 81.25 87.50 93.75
         //   1     2     3     4     5     6     7     8     9     10    11    12   13
     }
+    
+    static unsigned long long get_percentage_by_step(unsigned long long step){
+        if(step == 13ULL) step = 14ULL;
+        return ((step - 1ULL) * 625ULL + 1875ULL) / 100ULL;
+    }
 
     static int get_clock_percentage(){
         return (_cpu_current_clock * 100ULL) / _cpu_clock;
