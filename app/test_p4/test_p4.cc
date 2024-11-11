@@ -3,6 +3,7 @@
 #include <synchronizer.h>
 #include <machine.h>
 #include <time.h>
+#include <utility/random.h>
 
 using namespace EPOS;
 OStream cout;
@@ -33,7 +34,7 @@ void banner() {
 }
 
 void function_sqrt() {
-    for (int i = 0; i <= 1e7; i++) {
+    for (int i = 0; i <= 10000000; i++) {
         auto sqr = Math::sqrt(i);
         auto gcd = Math::gcd(i, 193);
         sqr += gcd;
@@ -47,14 +48,14 @@ void function_delay() {
 }
 
 void function_pass() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         i = i;
     }
     log_stopped(3);
 }
 
 void function_log2() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         auto r = Math::fast_log2(i);
         r += 1;
     }
@@ -62,7 +63,7 @@ void function_log2() {
 }
 
 void function_cos() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         auto r = Math::cos(i);
         r += 1;
     }
@@ -70,7 +71,7 @@ void function_cos() {
 }
 
 void function_sin() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         auto r = Math::sin(i);
         r += 1;
     }
@@ -78,7 +79,7 @@ void function_sin() {
 }
 
 void function_pow() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         auto r = Math::pow(i, 2);
         r += 1;
     }
@@ -86,7 +87,7 @@ void function_pow() {
 }
 
 void function_bab_sqrt() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         auto r = Math::babylonian_sqrt(i);
         r += 1;
     }
@@ -94,7 +95,7 @@ void function_bab_sqrt() {
 }
 
 void function_lcm() {
-    for (int i = 0; i < 2e7; i++) {
+    for (int i = 0; i < 20000000; i++) {
         auto r = Math::lcm(i, 631);
         r += 1;
     }
@@ -115,15 +116,19 @@ int main() {
     
     banner();
 
-    pthreads[0] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sqrt);
-    pthreads[1] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_delay);
-    pthreads[2] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pass);
-    pthreads[3] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_log2);
-    pthreads[4] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_cos);
-    pthreads[5] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sin);
-    pthreads[6] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pow);
-    pthreads[7] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_bab_sqrt);
-    pthreads[8] = new Periodic_Thread(RTConf(9e5, Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_lcm);
+    int randoms[9] = {0};
+    for (int i = 0; i < N_THREADS; i++) randoms[i] = Math::abs((Random::random() % 500000)) + 900000;
+    for (int i = 0; i < N_THREADS; i++) cout << "Period "<< i+1 << " = " << randoms[i] << endl;
+
+    pthreads[0] = new Periodic_Thread(RTConf(randoms[0], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sqrt);
+    pthreads[1] = new Periodic_Thread(RTConf(randoms[1], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_delay);
+    pthreads[2] = new Periodic_Thread(RTConf(randoms[2], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pass);
+    pthreads[3] = new Periodic_Thread(RTConf(randoms[3], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_log2);
+    pthreads[4] = new Periodic_Thread(RTConf(randoms[4], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_cos);
+    pthreads[5] = new Periodic_Thread(RTConf(randoms[5], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sin);
+    pthreads[6] = new Periodic_Thread(RTConf(randoms[6], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pow);
+    pthreads[7] = new Periodic_Thread(RTConf(randoms[7], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_bab_sqrt);
+    pthreads[8] = new Periodic_Thread(RTConf(randoms[8], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_lcm);
 
     for (i = 0; i < N_THREADS; i++) pthreads[i]->join();
     print_line();
