@@ -73,7 +73,7 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
 
 bool EDFEnergyAwareness::checkDeadlineLoss(Tick current_time) {
     Tick total_time = 0;
-    int iterations = threads_ahead;
+    int iterations = EDFEnergyAwareness::threads_ahead;
 
     for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations) {
         auto current_thread = (*it).object();
@@ -83,7 +83,7 @@ bool EDFEnergyAwareness::checkDeadlineLoss(Tick current_time) {
         Tick remaining_time = current_thread->get_remaining_time();
         total_time += remaining_time;
 
-        Tick deadline = int(current_thread->criterion());
+        Tick deadline = current_thread->criterion();
 
         if (current_time + (total_time / CPU::get_clock_percentage()) > deadline) {
             return true;
@@ -102,8 +102,8 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
 
     for (int next_step = current_step + direction; next_step != limit_step; next_step += direction) {
         Tick total_time = 0;
-        int iterations = threads_ahead;
-        bool stop = true;
+        int iterations = EDFEnergyAwareness::threads_ahead;
+        bool stop = false;
         long diff = next_step - current_step;
 
         db<EDFEnergyAwareness>(DEV) << "diff: " << diff << " iterations: " << iterations << endl;
@@ -112,12 +112,12 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
             auto current_thread = (*it).object();
             if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
 
-            unsigned long long new_execution_time = current_thread->criterion().statistics().avg_execution_time;
-            new_execution_time *= (10000ULL - diff * 625ULL) / 100ULL;
+            // unsigned long long new_execution_time = current_thread->criterion().statistics().avg_execution_time;
+            unsigned long long new_execution_time = (10000ULL - diff * 625ULL) * current_thread->get_remaining_time() / 100ULL;
             total_time += new_execution_time;
-            int current_deadline = int(current_thread->criterion());
+            int current_deadline = current_thread->criterion();
 
-            db<EDFEnergyAwareness>(DEV) << "new_execution: " << new_execution_time << " total_time: " << total_time << " current_deadline: " << current_deadline << endl;
+            db<EDFEnergyAwareness>(DEV) << "current_time: " << current_time << " new_execution: " << new_execution_time << " total_time: " << total_time << " current_deadline: " << current_deadline << endl;
 
             if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
                 stop = !is_deadline_lost;
