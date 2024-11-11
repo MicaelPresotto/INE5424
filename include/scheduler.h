@@ -313,12 +313,17 @@ public:
 class EDFEnergyAwareness : public EDF {
 
 public:
+    static const bool threads_ahead = 3;
 
     EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
     EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
 
     void handle(Event event, Thread *current=nullptr);
     void updateFrequency();
+
+    bool checkDeadlineLoss(Tick current_time);
+    int findNextStep(Tick current_time, bool is_deadline_lost);
+    void applyNewFrequency(int new_step);
 };
 
 

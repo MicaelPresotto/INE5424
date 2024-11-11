@@ -71,20 +71,11 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
 
 // int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
-void EDFEnergyAwareness::updateFrequency() {
-    // CPU::last_update[CPU::id()]++;
-    // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
-    // if (CPU::last_update[CPU::id()] < 2) return;
-    
-    // CPU::last_update[CPU::id()] = 0;
-
-    const int threads_ahead = 3;
-    const Tick current_time = elapsed();
+bool EDFEnergyAwareness::checkDeadlineLoss(Tick current_time) {
     Tick total_time = 0;
-    bool is_deadline_lost = false;
     int iterations = threads_ahead;
-    // Omitindo a thread que está executando
-    for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations){
+
+    for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations) {
         auto current_thread = (*it).object();
 
         if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
@@ -92,91 +83,74 @@ void EDFEnergyAwareness::updateFrequency() {
         Tick remaining_time = current_thread->get_remaining_time();
         total_time += remaining_time;
 
-        Tick deadline = int(current_thread->criterion()); // aqui eh Tick e nos outros locais eh int, linha 121 e 156
-
-        db<CPU>(DEV) << "Remaining time: " << remaining_time / CPU::get_clock_percentage() << " Current time: " << current_time << " Total time: " << total_time / CPU::get_clock_percentage() << " Current deadline: " << deadline << endl;
+        Tick deadline = int(current_thread->criterion());
 
         if (current_time + (total_time / CPU::get_clock_percentage()) > deadline) {
-            db<CPU>(DEV) << "VAI PERDER DEADLINE" << endl;
-            is_deadline_lost = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
+    int current_step = CPU::get_clock_step();
+    int new_step = -1;
+    int direction = is_deadline_lost ? 1 : -1;
+    int limit_step = is_deadline_lost ? 14 : 0;
+    
+    db<EDFEnergyAwareness>(DEV) << "current_step: " << current_step << " is_deadline_lost: " << is_deadline_lost << endl;
+
+    for (int next_step = current_step + direction; next_step != limit_step; next_step += direction) {
+        Tick total_time = 0;
+        int iterations = threads_ahead;
+        bool stop = true;
+        long diff = next_step - current_step;
+
+        db<EDFEnergyAwareness>(DEV) << "diff: " << diff << " iterations: " << iterations << endl;
+
+        for (auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations) {
+            auto current_thread = (*it).object();
+            if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
+
+            unsigned long long new_execution_time = current_thread->criterion().statistics().avg_execution_time;
+            new_execution_time *= (10000ULL - diff * 625ULL) / 100ULL;
+            total_time += new_execution_time;
+            int current_deadline = int(current_thread->criterion());
+
+            db<EDFEnergyAwareness>(DEV) << "new_execution: " << new_execution_time << " total_time: " << total_time << " current_deadline: " << current_deadline << endl;
+
+            if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
+                stop = !is_deadline_lost;
+                break;
+            }
+        }
+
+        if (stop) {
+            new_step = is_deadline_lost ? next_step : next_step + 1;
             break;
         }
     }
 
-    long current_step = CPU::get_clock_step();
-    db<CPU>(DEV) << "Is deadline lost: " << is_deadline_lost << endl;
-    db<CPU>(DEV) << "Current step: " << current_step << endl;
-    // no test_p3 parece que ele sempre fica com o step em 13 e nunca abaixa, o deadline lost sempre eh falso e ele nunca consegue abaixar um step
-    int new_step = -1;
-    iterations = threads_ahead;
+    return (new_step == -1) ? (is_deadline_lost ? 13: 1) : new_step;
+}
 
-    if (is_deadline_lost) {
-        for (long next_step = current_step + 1; next_step < 14; next_step++) {
-            total_time = 0;
-            for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
-                auto current_thread = (*it).object();
-
-                if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
-
-                long diff = next_step - current_step;
-                unsigned long long new_execution_time = current_thread->criterion().statistics().avg_execution_time * (10000ULL - diff * 625ULL) / 100ULL;
-                total_time += new_execution_time;
-
-                db<CPU>(DEV) << "New execution time: " << new_execution_time << endl;
-
-                int current_deadline = int(current_thread->criterion());
-
-                if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
-                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
-                    break;
-                }
-
-                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) { //REVISAR, ta indo sempre -1 pro new_step
-                    new_step = next_step;
-                }
-            }
-
-            if (new_step != -1) {
-                break;
-            }
-        }
-    } else {
-        new_step = current_step;
-        for (long next_step = current_step - 1; 0 < next_step; next_step--) {
-            total_time = 0;
-            bool breaker = false;
-            for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, iterations--){
-                // nao esta sendo feito algumas execucoes a mais atoa com o break ali da linha 158?
-                auto current_element = (*it).object();
-
-                if (current_element->criterion() == IDLE || !current_element->criterion().periodic())
-                    continue;
-
-                long diff = current_step - next_step;
-                unsigned long long new_execution_time = current_element->criterion().statistics().avg_execution_time * (10000ULL + diff * 625ULL) / 100ULL;
-                total_time += new_execution_time;
-
-                db<CPU>(DEV) << "New execution time: " << new_execution_time << endl;
-
-                int current_deadline = int(current_element->criterion());
-
-                if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
-                    db<CPU>(DEV) << "Nao vai dar pra abaixar nenhum step " << endl;
-                    breaker = true;
-                    db<CPU>(DEV) << "Current time: " << current_time << " Total time: " << (total_time / CPU::get_clock_percentage()) << " Current deadline: " << current_deadline << endl;
-                    break;
-                }
-
-                if (it + 1 == Thread::get_scheduler().end() || iterations == 1) { //REVISAR, ta indo sempre -1 pro new_step
-                    new_step = next_step;
-                }
-            }
-            if(breaker) break;
-        }
-    }
-    db<CPU>(DEV) << "New step: " << new_step << endl;
+void EDFEnergyAwareness::applyNewFrequency(int new_step) {
     Hertz new_freq = CPU::get_frequency_by_step(new_step);
     CPU::clock(new_freq);
+    db<EDFEnergyAwareness>(DEV) << "new_step: " << new_step << " new_freq: " << new_freq << endl;
+}
+
+void EDFEnergyAwareness::updateFrequency() {
+    // CPU::last_update[CPU::id()]++;
+    // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    // if (CPU::last_update[CPU::id()] < 2) return;
+    // CPU::last_update[CPU::id()] = 0;
+
+    const Tick current_time = elapsed();
+
+    bool is_deadline_loss = checkDeadlineLoss(current_time);
+    int new_step = findNextStep(current_time, is_deadline_loss);
+    applyNewFrequency(new_step);
 }
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
