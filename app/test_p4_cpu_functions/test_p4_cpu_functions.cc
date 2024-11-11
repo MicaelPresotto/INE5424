@@ -35,6 +35,14 @@ void test_get_clock_step() {
     }
 }
 
+void test_get_percentage_by_step() {
+    unsigned long long expected[] = {18ULL, 25ULL, 31ULL, 37ULL, 43ULL, 50ULL, 56ULL, 62ULL, 68ULL, 75ULL, 81ULL, 87ULL, 100ULL};
+    for (unsigned long long i = 1ULL; i < 14ULL; i++) {
+        assert(CPU::get_percentage_by_step(i) == expected[i-1]);
+        cout << "STEP " << i << " OK" << endl;
+    }
+}
+
 void banner() {
     cout << "+-----------------------------------------------+"    << endl;
     cout << "|  _______        _             _____  _  _     |"    << endl;
@@ -52,7 +60,8 @@ int main() {
 
     test_get_frequency_by_step(); print_line();
     test_get_clock_percentage(); print_line();
-    test_get_clock_step();
+    test_get_clock_step(); print_line();
+    test_get_percentage_by_step();
 
     return 0;
 }
