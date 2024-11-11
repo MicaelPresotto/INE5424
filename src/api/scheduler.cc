@@ -69,8 +69,6 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     db<Thread>(TRC) << "Execuçoes: " << _statistics.executions << " | " << current << " / " << Thread::self() << endl << endl;
 }
 
-// int CPU::last_update[Traits<Machine>::CPUS] = {0};
-
 bool EDFEnergyAwareness::checkDeadlineLoss(Tick current_time) {
     Tick total_time = 0;
     int iterations = EDFEnergyAwareness::threads_ahead;
@@ -112,12 +110,11 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
             auto current_thread = (*it).object();
             if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
 
-            // unsigned long long new_execution_time = current_thread->criterion().statistics().avg_execution_time;
             unsigned long long new_execution_time = (10000ULL - diff * 625ULL) * current_thread->get_remaining_time() / 100ULL;
             total_time += new_execution_time;
-            int current_deadline = current_thread->criterion();
+            Tick current_deadline = current_thread->criterion();
 
-            db<EDFEnergyAwareness>(DEV) << "current_time: " << current_time << " new_execution: " << new_execution_time << " total_time: " << total_time << " current_deadline: " << current_deadline << endl;
+            db<EDFEnergyAwareness>(DEV) << "current_time: " << current_time << " new_execution: " << new_execution_time / CPU::get_clock_percentage() << " total_time: " << total_time / CPU::get_clock_percentage() << " current_deadline: " << current_deadline << endl;
 
             if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
                 stop = !is_deadline_lost;
@@ -140,11 +137,13 @@ void EDFEnergyAwareness::applyNewFrequency(int new_step) {
     db<EDFEnergyAwareness>(DEV) << "new_step: " << new_step << " new_freq: " << new_freq << endl;
 }
 
+int CPU::last_update[Traits<Machine>::CPUS] = {0};
+
 void EDFEnergyAwareness::updateFrequency() {
-    // CPU::last_update[CPU::id()]++;
-    // db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
-    // if (CPU::last_update[CPU::id()] < 2) return;
-    // CPU::last_update[CPU::id()] = 0;
+    CPU::last_update[CPU::id()]++;
+    db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    if (CPU::last_update[CPU::id()] < 2) return;
+    CPU::last_update[CPU::id()] = 0;
 
     const Tick current_time = elapsed();
 
