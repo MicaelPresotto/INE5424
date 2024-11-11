@@ -140,7 +140,7 @@ int CPU::last_update[Traits<Machine>::CPUS] = {0};
 void EDFEnergyAwareness::updateFrequency() {
     CPU::last_update[CPU::id()]++;
     db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
-    if (CPU::last_update[CPU::id()] < 2) return;
+    if (CPU::last_update[CPU::id()] < threads_ahead) return;
     CPU::last_update[CPU::id()] = 0;
 
     const Tick current_time = elapsed();

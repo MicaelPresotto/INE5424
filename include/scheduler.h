@@ -313,7 +313,7 @@ public:
 class EDFEnergyAwareness : public EDF {
 
 public:
-    static const int threads_ahead = 3;
+    static const int threads_ahead = 5;
 
     EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
     EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
