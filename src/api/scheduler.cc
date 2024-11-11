@@ -34,8 +34,6 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     }
     if(event & FINISH) {
         db<Thread>(TRC) << "FINISH";
-        // _statistics.total_execution_time += _statistics.current_execution_time;
-        // _statistics.current_execution_time = 0;
     }
     if(event & ENTER) {
         db<Thread>(TRC) << "ENTER";
@@ -153,7 +151,6 @@ void EDFEnergyAwareness::updateFrequency() {
 }
 
 unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
-    // a unica funcao q ta funcioando, advinha qm fez
     unsigned long smallest_queue = 0UL;
     unsigned long min_avg_thread_time = 0UL;
     bool first = true;
