@@ -97,13 +97,15 @@ public:
 
         db<Thread>(TRC) << "Thread::wait_next(this=" << t << ",times=" << t->_alarm.times() << ")" << endl;
 
-        t->criterion().handle(Criterion::JOB_FINISH);
-
-        if(t->_alarm.times())
+        if(t->_alarm.times()) {
             t->_semaphore.p();
+            t->criterion().handle(Criterion::JOB_FINISH);
+        }
 
         return t->_alarm.times();
     }
+
+    volatile long get_deadline_losses() {return _semaphore.get_value();};
 
 protected:
     Semaphore _semaphore;

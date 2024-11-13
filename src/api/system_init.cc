@@ -13,6 +13,7 @@ void System::init()
         if(Traits<Alarm>::enabled)
             Alarm::init();
     }
+    CPU::smp_barrier();
 
     // These abstractions are initialized by all CPUs
     if(Traits<Thread>::enabled)

@@ -123,6 +123,33 @@ db(Debug_Trace l)
     return Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::trace)>();
 }
 
+// Development
+enum Debug_Development {DEV = 5};
+
+template<typename T>
+inline Select_Debug<(Traits<T>::debugged && Traits<Debug>::development)>
+db(Debug_Development l)
+{
+    extern OStream::Err error;
+
+    Select_Debug<(Traits<T>::debugged && Traits<Debug>::development)>() << begl;
+    if((Traits<Build>::EXPECTED_SIMULATION_TIME > 0) && EQUAL<T, IC>::Result)
+        Select_Debug<(Traits<T>::debugged && Traits<Debug>::development)>() << error;
+    return Select_Debug<(Traits<T>::debugged && Traits<Debug>::development)>();
+}
+
+template<typename T1, typename T2>
+inline Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::development)>
+db(Debug_Development l)
+{
+    extern OStream::Err error;
+
+    Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::development)>() << begl;
+    if((Traits<Build>::EXPECTED_SIMULATION_TIME > 0) && (EQUAL<T1, IC>::Result || EQUAL<T2, IC>::Result))
+        Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::development)>() << error;
+    return Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::development)>();
+}
+
 
 class Assert
 {

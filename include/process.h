@@ -36,6 +36,7 @@ protected:
 
     typedef CPU::Log_Addr Log_Addr;
     typedef CPU::Context Context;
+    typedef Timer_Common::Tick Tick;
 
 public:
     // Thread State
@@ -79,6 +80,7 @@ public:
     Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an);
     ~Thread();
 
+    static Scheduler<Thread> get_scheduler();
     const volatile State & state() const { return _state; }
     Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
     volatile Criterion::Statistics & statistics() { return criterion().statistics(); }
@@ -96,6 +98,12 @@ public:
     static Thread * volatile self() { return running(); }
     static void yield();
     static void exit(int status = 0);
+
+    Tick get_remaining_time() {
+        Tick aux = criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
+        if (aux > 0) return aux;
+        return criterion().period() - (criterion().statistics().current_execution_time % criterion().period());
+    }
 
 protected:
     void constructor_prologue(unsigned int stack_size);
@@ -156,8 +164,8 @@ protected:
     alignas (int) static bool _not_booting;
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
-    static Scheduler<Thread> _scheduler;
     static Spin _lock;
+    static Scheduler<Thread> _scheduler;
 };
 
 class Task

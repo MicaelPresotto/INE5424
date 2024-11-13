@@ -3,6 +3,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <time.h>
 
 __BEGIN_SYS
 
@@ -25,6 +26,9 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _stack = new (SYSTEM) char[stack_size];
 }
 
+Scheduler<Thread> Thread::get_scheduler(){
+    return Thread::_scheduler;
+}
 
 void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
 {
@@ -374,11 +378,10 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
     if(prev != next) {
         if(Criterion::dynamic) {
-            prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE);
+            prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE, prev);
             for_all_threads(Criterion::UPDATE);
-            next->criterion().handle(Criterion::AWARD  | Criterion::ENTER);
+            next->criterion().handle(Criterion::AWARD  | Criterion::ENTER, next);
         }
-
         if(prev->_state == RUNNING)
             prev->_state = READY;
         next->_state = RUNNING;
@@ -402,6 +405,9 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
         if(smp)
             _lock.acquire();
+        
+        next->statistics().thread_last_dispatch = Alarm::elapsed();
+        next->criterion().updateFrequency();
     }
 }
 
@@ -427,6 +433,7 @@ int Thread::idle()
     }
 
     CPU::smp_barrier();
+
     Machine::reboot();
 
     return 0;

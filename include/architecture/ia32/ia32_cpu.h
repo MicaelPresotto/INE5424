@@ -19,6 +19,8 @@ private:
 public:
     // Bootstrap/service CPU id
     static const unsigned long BSP = 0;
+    // Number of dispatches by CPU since lasy frequency update
+    static int last_update[Traits<Machine>::CPUS];
 
     // Native Data Types
     using CPU_Common::Reg8;
@@ -357,22 +359,44 @@ public:
     static void clock(Hertz frequency) {
         Reg64 clock = frequency;
         unsigned int dc;
-        if(clock <= (_cpu_clock * 1875 / 10000)) {
+        if(clock <= (_cpu_clock * 1875ULL / 10000ULL)) {
             dc = 0b10011;   // minimum duty cycle of 12.5 %
-            _cpu_current_clock = _cpu_clock * 1875 / 10000;
-        } else if(clock >= (_cpu_clock * 9375 / 10000)) {
+            _cpu_current_clock = _cpu_clock * 1875ULL / 10000ULL;
+        } else if(clock >= (_cpu_clock * 9375ULL / 10000ULL)) {
             dc = 0b01001;   // disable duty cycling and operate at full speed
             _cpu_current_clock = _cpu_clock;
         } else {
-            dc = 0b10001 | ((clock * 10000 / _cpu_clock + 625) / 625); // dividing by 625 instead of 1250 eliminates the shift left
-            _cpu_current_clock = _cpu_clock * ((clock * 10000 / _cpu_clock + 625) / 625) * 625 / 10000;
+            dc = 0b10001 | ((clock * 10000ULL / _cpu_clock + 625ULL) / 625ULL); // dividing by 625 instead of 1250 eliminates the shift left
+            _cpu_current_clock = _cpu_clock * ((clock * 10000ULL / _cpu_clock + 625ULL) / 625ULL) * 625ULL / 10000ULL;
             // The ((clock * 10000 / _cpu_clock + 625) / 625) returns the factor, the step is 625/10000
             // thus, max_clock * factor * step = final clock
         }
         wrmsr(CLOCK_MODULATION, dc);
     }
+
+    static Hertz get_clock_step() {
+        if (_cpu_current_clock == max_clock()) return 13ULL;
+        return ((_cpu_current_clock) / ((_cpu_clock / 10000ULL) * 625ULL)) - 2ULL;
+        // 18.75 25.00 31.25 37.50 43.75 50.00 56.25 62.50 68.75 75.00 81.25 87.50 93.75
+        //   1     2     3     4     5     6     7     8     9     10    11    12   13
+    }
+    
+    static unsigned long long get_percentage_by_step(unsigned long long step){
+        if(step == 13ULL) step = 14ULL;
+        return ((step - 1ULL) * 625ULL + 1875ULL) / 100ULL;
+    }
+
+    static int get_clock_percentage(){
+        return (_cpu_current_clock * 100ULL) / _cpu_clock;
+    }
+
+   static Hertz get_frequency_by_step(unsigned long long step){
+        if (step == 13ULL) step = 14ULL;
+        return ((step - 1ULL) * 625ULL + 1875ULL) * (_cpu_clock / 10000ULL);
+    }
+
     static Hertz max_clock() { return _cpu_clock; }
-    static Hertz min_clock() { return _cpu_clock * 1250 / 10000;}
+    static Hertz min_clock() { return _cpu_clock * 1250ULL / 10000ULL;}
 
     static Hertz bus_clock() { return _bus_clock; }
 
