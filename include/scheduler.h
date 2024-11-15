@@ -158,10 +158,12 @@ public:
 // Multicore Algorithms
 class Variable_Queue_Scheduler
 {
+public:
+    const volatile unsigned int & queue() const volatile { return _queue; }
+
 protected:
     Variable_Queue_Scheduler(unsigned int queue): _queue(queue) {};
 
-    const volatile unsigned int & queue() const volatile { return _queue; }
     void queue(unsigned int q) { _queue = q; }
 
 protected:

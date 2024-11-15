@@ -133,7 +133,7 @@ int main() {
 
     for (i = 0; i < N_THREADS; i++) pthreads[i]->join();
     print_line();
-    for (i = 0; i < N_THREADS; i++) cout << " PT " << pthreads[i]->get_name() << ": Deadlines perdidas " << pthreads[i]->get_deadline_losses() << "; Execucoes " << pthreads[i]->statistics().executions << "; Tempo medio execucao " << pthreads[i]->statistics().avg_execution_time << endl;
+    for (i = 0; i < N_THREADS; i++) cout << " PT " << pthreads[i]->get_name() << " [" << pthreads[i]->criterion().queue() << "]" << ": Deadlines perdidas " << pthreads[i]->get_deadline_losses() << "; Execucoes " << pthreads[i]->statistics().executions << "; Tempo medio execucao " << pthreads[i]->statistics().avg_execution_time << endl;
     for (i = 0; i < N_THREADS; i++) delete pthreads[i];
 
     return 0;
