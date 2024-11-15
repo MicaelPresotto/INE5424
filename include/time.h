@@ -55,11 +55,11 @@ public:
     static Hertz frequency() { return _timer->frequency(); }
 
     static void delay(Microsecond time);
+    static volatile Tick & elapsed() { return _elapsed; }
 
 private:
     unsigned int times() const { return _times; }
 
-    static volatile Tick & elapsed() { return _elapsed; }
 
     static Alarm_Timer * timer() { return _timer; }
 

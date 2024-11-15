@@ -9,12 +9,18 @@ using namespace EPOS;
 OStream cout;
 Simple_Spin s;
 
-#define ITERATIONS  4
+#define ITERATIONS  5
 #define N_THREADS   9
 
-void log_stopped(int t) {
+void log_stopped() {
     s.acquire();
-    cout << " Thread " << t << " has finished executing (" << Thread::self()->statistics().executions + 1 << ")." << endl;
+    cout << Alarm::elapsed() << " " << Thread::self()->get_name() << " has finished executing (" << Thread::self()->statistics().executions + 1 << ")." << endl;
+    s.release();
+}
+
+void log_started() {
+    s.acquire();
+    cout << Alarm::elapsed() << " " << Thread::self()->get_name() << " has started executing (" << Thread::self()->statistics().executions + 1 << ")." << endl;
     s.release();
 }
 
@@ -39,19 +45,16 @@ void function_sqrt() {
         auto gcd = Math::gcd(i, 193);
         sqr += gcd;
     }
-    log_stopped(1);
 }
 
 void function_delay() {
     Delay d(5e3);
-    log_stopped(2);
 }
 
 void function_pass() {
     for (int i = 0; i < 20000000; i++) {
         i = i;
     }
-    log_stopped(3);
 }
 
 void function_log2() {
@@ -59,7 +62,6 @@ void function_log2() {
         auto r = Math::fast_log2(i);
         r += 1;
     }
-    log_stopped(4);
 }
 
 void function_cos() {
@@ -67,7 +69,6 @@ void function_cos() {
         auto r = Math::cos(i);
         r += 1;
     }
-    log_stopped(5);
 }
 
 void function_sin() {
@@ -75,7 +76,6 @@ void function_sin() {
         auto r = Math::sin(i);
         r += 1;
     }
-    log_stopped(6);
 }
 
 void function_pow() {
@@ -83,7 +83,6 @@ void function_pow() {
         auto r = Math::pow(i, 2);
         r += 1;
     }
-    log_stopped(7);
 }
 
 void function_bab_sqrt() {
@@ -91,7 +90,6 @@ void function_bab_sqrt() {
         auto r = Math::babylonian_sqrt(i);
         r += 1;
     }
-    log_stopped(8);
 }
 
 void function_lcm() {
@@ -99,12 +97,13 @@ void function_lcm() {
         auto r = Math::lcm(i, 631);
         r += 1;
     }
-    log_stopped(9);
 }
 
 int pt_loop(void(callback)()) {
     do {
+        log_started();
         callback();
+        log_stopped();
     } while (Periodic_Thread::wait_next());
     return 0;
 }
@@ -137,7 +136,7 @@ int main() {
     pthreads[4] = new Periodic_Thread(RTConf(randoms[4], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "cos"), &pt_loop, function_cos);
     pthreads[5] = new Periodic_Thread(RTConf(randoms[5], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "sin"), &pt_loop, function_sin);
     pthreads[6] = new Periodic_Thread(RTConf(randoms[6], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "pow"), &pt_loop, function_pow);
-    pthreads[7] = new Periodic_Thread(RTConf(randoms[7], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "bab_sqrt"), &pt_loop, function_bab_sqrt);
+    pthreads[7] = new Periodic_Thread(RTConf(randoms[7], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "bsqrt"), &pt_loop, function_bab_sqrt);
     pthreads[8] = new Periodic_Thread(RTConf(randoms[8], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "lcm"), &pt_loop, function_lcm);
 
     for (i = 0; i < N_THREADS; i++) pthreads[i]->join();

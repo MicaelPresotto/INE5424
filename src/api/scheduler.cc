@@ -149,18 +149,31 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
 }
 
 void EDFEnergyAwareness::applyNewFrequency(int new_step) {
+    int current_step = CPU::get_clock_step();
+    if (new_step == current_step) return;
+    if ((current_step - new_step) > 3) new_step = current_step - 3;
     Hertz new_freq = CPU::get_frequency_by_step(new_step);
     CPU::clock(new_freq);
+    db<EDFEnergyAwareness>(DEV) << elapsed();
+    db<EDFEnergyAwareness>(DEV) << " {" << Thread::self()->get_name();
+    db<EDFEnergyAwareness>(DEV) << " rt=" << Thread::self()->get_remaining_time() / CPU::get_clock_percentage();
+    db<EDFEnergyAwareness>(DEV) << " d=" << Thread::self()->criterion();
+
+    for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end(); ++it) {
+        db<EDFEnergyAwareness>(DEV) << ", " << (*it).object()->get_name();
+        db<EDFEnergyAwareness>(DEV) << " rt=" << (*it).object()->get_remaining_time() / CPU::get_clock_percentage();
+        db<EDFEnergyAwareness>(DEV) << " d=" << (*it).object()->criterion();
+    }
+
+    db<EDFEnergyAwareness>(DEV) << "} ";
+    db<EDFEnergyAwareness>(DEV) << "step " << current_step << " -> " << new_step << (current_step > new_step ? " - " : " + ") << endl;
 }
 
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
 void EDFEnergyAwareness::updateFrequency() {
-    db<EDFEnergyAwareness>(DEV) << "CORE [" << CPU::id() << "] step (SW) " << CPU::get_clock_step() << " step (HW) " << CPU::clock_by_rdmsr() << " new step ";
     if (Thread::self()->criterion() == IDLE) {
         CPU::last_update[CPU::id()] = threads_ahead - 1;
-        // db<EDFEnergyAwareness>(DEV) << "IDLE -> prev step " << CPU::get_clock_step() << " new step " << (CPU::get_clock_step() + 1)/2 << endl;;
-        db<EDFEnergyAwarenessAffinity>(DEV) << (CPU::get_clock_step() + 1)/2 << endl;
         applyNewFrequency((CPU::get_clock_step() + 1)/2);
     }
     else CPU::last_update[CPU::id()]++;
@@ -172,8 +185,6 @@ void EDFEnergyAwareness::updateFrequency() {
 
     bool is_deadline_loss = checkDeadlineLoss(current_time);
     int new_step = findNextStep(current_time, is_deadline_loss);
-    db<EDFEnergyAwarenessAffinity>(DEV) << new_step << endl;
-    // db<EDFEnergyAwareness>(DEV) << Thread::self()->get_name() << " -> prev step " << CPU::get_clock_step() << " new step " << new_step << " rise " << is_deadline_loss << endl;;
     applyNewFrequency(new_step);
 }
 

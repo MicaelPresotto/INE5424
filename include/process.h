@@ -238,8 +238,9 @@ template<typename ... Tn>
 inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
 : _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
 {
-    const char* fixed_name = "NomeFixo";
-    strncpy(_name, fixed_name, 32);
+    if (criterion() == IDLE) strncpy(_name, "IDLE", 32);
+    else if (criterion() == MAIN) strncpy(_name, "MAIN", 32);
+    else strncpy(_name, "Unknown", 32);
     _name[31] = '\0';
     constructor_prologue(STACK_SIZE);
     _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
@@ -250,8 +251,9 @@ template<typename ... Tn>
 inline Thread::Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
 : _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
 {
-    const char* fixed_name = "NomeFixo";
-    strncpy(_name, fixed_name, 32);
+    if (conf.criterion == IDLE) strncpy(_name, "IDLE", 32);
+    else if (conf.criterion == MAIN) strncpy(_name, "MAIN", 32);
+    else strncpy(_name, "Unknown", 32);
     _name[31] = '\0';
     constructor_prologue(conf.stack_size);
     _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);
