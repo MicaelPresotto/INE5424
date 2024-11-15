@@ -93,29 +93,37 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
     int new_step = -1;
     int direction = is_deadline_lost ? 1 : -1;
     int limit_step = is_deadline_lost ? 14 : 0;
-    
-    db<EDFEnergyAwareness>(DEV) << "current_step: " << current_step << " is_deadline_lost: " << is_deadline_lost << endl;
+
+    db<EDFEnergyAwareness>(DEV) << "current_step: " << current_step << " is_deadline_lost: " << is_deadline_lost << " queue size: " << Thread::get_scheduler().size() << endl;
 
     for (int next_step = current_step + direction; next_step != limit_step; next_step += direction) {
-        Tick total_time = 0;
+        Tick total_time = 0UL;
+        Tick current_deadline = Thread::get_scheduler().chosen()->criterion();
         int iterations = EDFEnergyAwareness::threads_ahead;
-        bool stop = false;
+        bool stop = is_deadline_lost;
         long diff = next_step - current_step;
+        unsigned long long percentage_on_step = CPU::get_percentage_by_step(CPU::get_clock_step() + diff);
+
+        if (Thread::get_scheduler().chosen()->criterion() != IDLE && Thread::get_scheduler().chosen()->criterion().periodic()) {
+            total_time = Thread::get_scheduler().chosen()->get_remaining_time();
+            if (current_time + (Tick)(total_time / percentage_on_step) > current_deadline) {
+                if (is_deadline_lost) continue;
+                new_step = next_step + 1;
+                break;
+            }
+        }
 
         db<EDFEnergyAwareness>(DEV) << "diff: " << diff << " iterations: " << iterations << endl;
 
         for (auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations) {
             auto current_thread = (*it).object();
             if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
+            total_time += current_thread->get_remaining_time();
+            current_deadline = current_thread->criterion();
+            db<EDFEnergyAwareness>(DEV) << "elapsed: " << current_time << " total_time: " << total_time / percentage_on_step << " deadline: " << current_deadline << endl;
 
-            unsigned long long new_execution_time = (10000ULL - diff * 625ULL) * current_thread->get_remaining_time() / 100ULL;
-            total_time += new_execution_time;
-            Tick current_deadline = current_thread->criterion();
-
-            db<EDFEnergyAwareness>(DEV) << "current_time: " << current_time << " new_execution: " << new_execution_time / CPU::get_clock_percentage() << " total_time: " << total_time / CPU::get_clock_percentage() << " current_deadline: " << current_deadline << endl;
-
-            if (current_time + (total_time / CPU::get_clock_percentage()) > current_deadline) {
-                stop = !is_deadline_lost;
+            if (current_time + (Tick)(total_time / percentage_on_step) > current_deadline) {
+                stop = !stop;
                 break;
             }
         }
@@ -132,7 +140,7 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
 void EDFEnergyAwareness::applyNewFrequency(int new_step) {
     Hertz new_freq = CPU::get_frequency_by_step(new_step);
     CPU::clock(new_freq);
-    db<EDFEnergyAwareness>(DEV) << "new_step: " << new_step << " new_freq: " << new_freq << endl;
+    db<EDFEnergyAwareness>(DEV) << "new_step: " << new_step << " new_freq: " << new_freq << " queue size " << Thread::get_scheduler().size() << endl;
 }
 
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
@@ -154,9 +162,8 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0UL;
     unsigned long min_avg_thread_time = 0UL;
     bool first = true;
-
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
-        unsigned long avg_queue_thread_time = 0UL;
+        unsigned long avg_queue_thread_time = 0UL; // Thread::get_scheduler().chosen(nqueue)->get_remaining_time()
         for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;

@@ -100,8 +100,8 @@ public:
     static void exit(int status = 0);
 
     Tick get_remaining_time() {
-        Tick aux = criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
-        if (aux > 0) return aux;
+        Tick remaining = criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
+        if (remaining > 0) return remaining;
         return criterion().period() - (criterion().statistics().current_execution_time % criterion().period());
     }
 
