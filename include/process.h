@@ -105,6 +105,8 @@ public:
         return criterion().period() - (criterion().statistics().current_execution_time % criterion().period());
     }
 
+    char *get_name() {return _name;}
+
 protected:
     void constructor_prologue(unsigned int stack_size);
     void constructor_epilogue(Log_Addr entry, unsigned int stack_size);
@@ -166,6 +168,8 @@ protected:
     static Scheduler_Timer * _timer;
     static Spin _lock;
     static Scheduler<Thread> _scheduler;
+
+    char _name[32];
 };
 
 class Task
@@ -229,6 +233,9 @@ template<typename ... Tn>
 inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
 : _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
 {
+    const char* fixed_name = "NomeFixo";
+    strncpy(_name, fixed_name, 32);
+    _name[31] = '\0';
     constructor_prologue(STACK_SIZE);
     _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
     constructor_epilogue(entry, STACK_SIZE);
@@ -238,6 +245,9 @@ template<typename ... Tn>
 inline Thread::Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
 : _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
 {
+    const char* fixed_name = "NomeFixo";
+    strncpy(_name, fixed_name, 32);
+    _name[31] = '\0';
     constructor_prologue(conf.stack_size);
     _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);
     constructor_epilogue(entry, conf.stack_size);

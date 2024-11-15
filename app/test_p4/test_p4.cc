@@ -121,19 +121,19 @@ int main() {
     for (int i = 0; i < N_THREADS; i++) cout << " Period "<< i+1 << " = " << randoms[i] << endl;
     print_line();
     
-    pthreads[0] = new Periodic_Thread(RTConf(randoms[0], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sqrt);
-    pthreads[1] = new Periodic_Thread(RTConf(randoms[1], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_delay);
-    pthreads[2] = new Periodic_Thread(RTConf(randoms[2], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pass);
-    pthreads[3] = new Periodic_Thread(RTConf(randoms[3], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_log2);
-    pthreads[4] = new Periodic_Thread(RTConf(randoms[4], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_cos);
-    pthreads[5] = new Periodic_Thread(RTConf(randoms[5], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_sin);
-    pthreads[6] = new Periodic_Thread(RTConf(randoms[6], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_pow);
-    pthreads[7] = new Periodic_Thread(RTConf(randoms[7], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_bab_sqrt);
-    pthreads[8] = new Periodic_Thread(RTConf(randoms[8], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS), &pt_loop, function_lcm);
+    pthreads[0] = new Periodic_Thread(RTConf(randoms[0], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "sqrt"), &pt_loop, function_sqrt);
+    pthreads[1] = new Periodic_Thread(RTConf(randoms[1], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "delay"), &pt_loop, function_delay);
+    pthreads[2] = new Periodic_Thread(RTConf(randoms[2], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "pass"), &pt_loop, function_pass);
+    pthreads[3] = new Periodic_Thread(RTConf(randoms[3], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "log2"), &pt_loop, function_log2);
+    pthreads[4] = new Periodic_Thread(RTConf(randoms[4], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "cos"), &pt_loop, function_cos);
+    pthreads[5] = new Periodic_Thread(RTConf(randoms[5], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "sin"), &pt_loop, function_sin);
+    pthreads[6] = new Periodic_Thread(RTConf(randoms[6], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "pow"), &pt_loop, function_pow);
+    pthreads[7] = new Periodic_Thread(RTConf(randoms[7], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "bab_sqrt"), &pt_loop, function_bab_sqrt);
+    pthreads[8] = new Periodic_Thread(RTConf(randoms[8], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "lcm"), &pt_loop, function_lcm);
 
     for (i = 0; i < N_THREADS; i++) pthreads[i]->join();
     print_line();
-    for (i = 0; i < N_THREADS; i++) cout << " PT " << i+1 << ": Deadlines perdidas " << pthreads[i]->get_deadline_losses() << "; Execucoes " << pthreads[i]->statistics().executions << "; Tempo medio execucao " << pthreads[i]->statistics().avg_execution_time << endl;
+    for (i = 0; i < N_THREADS; i++) cout << " PT " << pthreads[i]->get_name() << ": Deadlines perdidas " << pthreads[i]->get_deadline_losses() << "; Execucoes " << pthreads[i]->statistics().executions << "; Tempo medio execucao " << pthreads[i]->statistics().avg_execution_time << endl;
     for (i = 0; i < N_THREADS; i++) delete pthreads[i];
 
     return 0;
