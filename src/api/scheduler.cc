@@ -71,6 +71,15 @@ bool EDFEnergyAwareness::checkDeadlineLoss(Tick current_time) {
     Tick total_time = 0;
     int iterations = EDFEnergyAwareness::threads_ahead;
 
+    if (Thread::self()->criterion() != IDLE && Thread::self()->criterion().periodic()) {
+        total_time += Thread::self()->get_remaining_time();
+        if (current_time + (total_time / CPU::get_clock_percentage()) > Thread::self()->criterion()) {
+            // db<EDFEnergyAwareness>(DEV) << Thread::self()->get_name() << " perde deadline" << endl;
+            return true;
+        }
+        // db<EDFEnergyAwareness>(DEV) << Thread::self()->get_name() << " nao perde deadline" << endl;
+    }
+
     for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations) {
         auto current_thread = (*it).object();
 
@@ -82,8 +91,10 @@ bool EDFEnergyAwareness::checkDeadlineLoss(Tick current_time) {
         Tick deadline = current_thread->criterion();
 
         if (current_time + (total_time / CPU::get_clock_percentage()) > deadline) {
+            // db<EDFEnergyAwareness>(DEV) << Thread::self()->get_name() << " perde deadline" << endl;
             return true;
         }
+        // db<EDFEnergyAwareness>(DEV) << Thread::self()->get_name() << " nao perde deadline" << endl;
     }
     return false;
 }
@@ -94,7 +105,7 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
     int direction = is_deadline_lost ? 1 : -1;
     int limit_step = is_deadline_lost ? 14 : 0;
 
-    db<EDFEnergyAwareness>(DEV) << "current_step: " << current_step << " is_deadline_lost: " << is_deadline_lost << " queue size: " << Thread::get_scheduler().size() << endl;
+    // db<EDFEnergyAwareness>(DEV) << "current_step: " << current_step << " is_deadline_lost: " << is_deadline_lost << " queue size: " << Thread::get_scheduler().size() << endl;
 
     for (int next_step = current_step + direction; next_step != limit_step; next_step += direction) {
         Tick total_time = 0UL;
@@ -113,14 +124,14 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
             }
         }
 
-        db<EDFEnergyAwareness>(DEV) << "diff: " << diff << " iterations: " << iterations << endl;
+        // db<EDFEnergyAwareness>(DEV) << "diff: " << diff << " iterations: " << iterations << endl;
 
         for (auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end() && iterations; ++it, --iterations) {
             auto current_thread = (*it).object();
             if (current_thread->criterion() == IDLE || !current_thread->criterion().periodic()) continue;
             total_time += current_thread->get_remaining_time();
             current_deadline = current_thread->criterion();
-            db<EDFEnergyAwareness>(DEV) << "elapsed: " << current_time << " total_time: " << total_time / percentage_on_step << " deadline: " << current_deadline << endl;
+            // db<EDFEnergyAwareness>(DEV) << "elapsed: " << current_time << " total_time: " << total_time / percentage_on_step << " deadline: " << current_deadline << endl;
 
             if (current_time + (Tick)(total_time / percentage_on_step) > current_deadline) {
                 stop = !stop;
@@ -140,15 +151,17 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
 void EDFEnergyAwareness::applyNewFrequency(int new_step) {
     Hertz new_freq = CPU::get_frequency_by_step(new_step);
     CPU::clock(new_freq);
-    db<EDFEnergyAwareness>(DEV) << "new_step: " << new_step << " new_freq: " << new_freq << " queue size " << Thread::get_scheduler().size() << endl;
 }
 
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
 void EDFEnergyAwareness::updateFrequency() {
+    db<EDFEnergyAwareness>(DEV) << "CORE [" << CPU::id() << "] step (SW) " << CPU::get_clock_step() << " step (HW) " << CPU::clock_by_rdmsr() << " new step ";
     if (Thread::self()->criterion() == IDLE) {
         CPU::last_update[CPU::id()] = threads_ahead - 1;
-        applyNewFrequency(1);
+        // db<EDFEnergyAwareness>(DEV) << "IDLE -> prev step " << CPU::get_clock_step() << " new step " << (CPU::get_clock_step() + 1)/2 << endl;;
+        db<EDFEnergyAwarenessAffinity>(DEV) << (CPU::get_clock_step() + 1)/2 << endl;
+        applyNewFrequency((CPU::get_clock_step() + 1)/2);
     }
     else CPU::last_update[CPU::id()]++;
 
@@ -159,6 +172,8 @@ void EDFEnergyAwareness::updateFrequency() {
 
     bool is_deadline_loss = checkDeadlineLoss(current_time);
     int new_step = findNextStep(current_time, is_deadline_loss);
+    db<EDFEnergyAwarenessAffinity>(DEV) << new_step << endl;
+    // db<EDFEnergyAwareness>(DEV) << Thread::self()->get_name() << " -> prev step " << CPU::get_clock_step() << " new step " << new_step << " rise " << is_deadline_loss << endl;;
     applyNewFrequency(new_step);
 }
 
