@@ -169,9 +169,8 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
         Thread* current_thread = scheduler.chosen(nqueue)->object();
-        unsigned long avg_queue_thread_time = 0UL; // Thread::get_scheduler().chosen(nqueue)->get_remaining_time()
-        if (current_thread && current_thread->criterion() != IDLE && current_thread->criterion().periodic()) 
-            avg_queue_thread_time = current_thread->get_remaining_time();
+        unsigned long avg_queue_thread_time = 0UL;
+        if (current_thread) avg_queue_thread_time = current_thread->get_remaining_time();
         for(auto it = scheduler.begin(nqueue); it != scheduler.end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;

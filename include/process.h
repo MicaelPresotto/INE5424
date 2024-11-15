@@ -100,6 +100,11 @@ public:
     static void exit(int status = 0);
 
     Tick get_remaining_time() {
+        if (!criterion().periodic() || criterion() == IDLE) return 0;
+        Tick current_execution_time = criterion().statistics().current_execution_time;
+        if (this == Thread::running()) {
+            current_execution_time += (criterion().elapsed() - criterion().statistics().thread_last_dispatch) * CPU::get_clock_percentage();
+        }
         Tick remaining = criterion().statistics().avg_execution_time - criterion().statistics().current_execution_time;
         if (remaining > 0) return remaining;
         return criterion().period() - (criterion().statistics().current_execution_time % criterion().period());
