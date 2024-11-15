@@ -146,8 +146,12 @@ void EDFEnergyAwareness::applyNewFrequency(int new_step) {
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
 
 void EDFEnergyAwareness::updateFrequency() {
-    CPU::last_update[CPU::id()]++;
-    db<CPU>(TRC) << "LAST UPDATE [" << CPU::id() << "] = " << CPU::last_update[CPU::id()] << " | THREAD = " << Thread::self() <<  endl;
+    if (Thread::self()->criterion() == IDLE) {
+        CPU::last_update[CPU::id()] = threads_ahead - 1;
+        applyNewFrequency(1);
+    }
+    else CPU::last_update[CPU::id()]++;
+
     if (CPU::last_update[CPU::id()] < threads_ahead) return;
     CPU::last_update[CPU::id()] = 0;
 
@@ -162,9 +166,13 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
     unsigned long smallest_queue = 0UL;
     unsigned long min_avg_thread_time = 0UL;
     bool first = true;
+    Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
     for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
+        Thread* current_thread = scheduler.chosen(nqueue)->object();
         unsigned long avg_queue_thread_time = 0UL; // Thread::get_scheduler().chosen(nqueue)->get_remaining_time()
-        for(auto it = Thread::get_scheduler().begin(nqueue); it != Thread::get_scheduler().end(); ++it){ 
+        if (current_thread && current_thread->criterion() != IDLE && current_thread->criterion().periodic()) 
+            avg_queue_thread_time = current_thread->get_remaining_time();
+        for(auto it = scheduler.begin(nqueue); it != scheduler.end(); ++it){ 
             auto current_element = *it;
             if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
         }
@@ -173,9 +181,7 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
             min_avg_thread_time = avg_queue_thread_time;
             first = false;
         }
-        db<EDFEnergyAwarenessAffinity>(DEV) << "define_best_queue: " << "CPU [" << nqueue << "] = " << avg_queue_thread_time << " / " << Thread::get_scheduler().size(nqueue) << endl;
     }
-    db<EDFEnergyAwarenessAffinity>(DEV) << "define_best_queue: " << "Chosen CPU [" << smallest_queue << "]" << endl;
     return smallest_queue;
 }
 
