@@ -116,17 +116,17 @@ int main() {
     
     banner();
 
-    long long cache_misses = PMU::read(1);
-    long long branch_mispredictions = PMU::read(2);
-    long long instructions_retired = PMU::read(3);
+    long long cache_misses = PMU::read(2);
+    long long branch_mispredictions = PMU::read(1);
+    long long instructions_retired = PMU::read(0);
 
     int randoms[9] = {0};
     for (int i = 0; i < N_THREADS; i++) randoms[i] = Math::abs((Random::random() % 500000)) + 900000;
     for (int i = 0; i < N_THREADS; i++) cout << " Period "<< i+1 << " = " << randoms[i] << endl;
 
-    cout << "Cache Misses: " << cache_misses << endl;
-    cout << "Branch Mispredictions: " << branch_mispredictions << endl;
-    cout << "Instructions Retired: " << instructions_retired << endl;
+    cout << CPU::id() << "Cache Misses: " << cache_misses << endl;
+    cout << CPU::id() << "Branch Mispredictions: " << branch_mispredictions << endl;
+    cout << CPU::id() << "Instructions Retired: " << instructions_retired << endl;
 
     print_line();
     

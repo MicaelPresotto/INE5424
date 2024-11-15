@@ -68,7 +68,7 @@ void PMU::init()
 //    IC::int_vector(IC::INT_PMU, int_handler);
 //    IC::enable(IC::INT_PMU);
 //    CPU::int_enable();
-//
+
 //    APIC::enable_pmu();
 }
 
