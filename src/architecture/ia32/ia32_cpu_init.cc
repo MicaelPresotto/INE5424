@@ -25,6 +25,16 @@ void CPU::init()
     // Initialize the PMU	
     if(Traits<PMU>::enabled)
         PMU::init();
+        PMU::config(1, PMU_Event::CACHE_MISSES);
+        PMU::config(2, PMU_Event::BRANCH_MISPREDICTIONS);
+        PMU::config(3, PMU_Event::INSTRUCTIONS_RETIRED);
+        PMU::start(1);
+        PMU::start(2);
+        PMU::start(3);
+        PMU::reset(1);
+        PMU::reset(2);
+        PMU::reset(3);
+        
 }
 
 void CPU::smp_barrier_init(unsigned int cores) {
