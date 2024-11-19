@@ -361,20 +361,20 @@ public:
 
     static void clock(Hertz frequency) {
         Reg64 clock = frequency;
-        unsigned int dc;
+        // unsigned int dc;
         if(clock <= (_cpu_clock * 1875ULL / 10000ULL)) {
-            dc = 0b10011;   // minimum duty cycle of 12.5 %
+            // dc = 0b10011;   // minimum duty cycle of 12.5 %
             _cpu_current_clock[CPU::id()] = _cpu_clock * 1875ULL / 10000ULL;
         } else if(clock >= (_cpu_clock * 9375ULL / 10000ULL)) {
-            dc = 0b01001;   // disable duty cycling and operate at full speed
+            // dc = 0b01001;   // disable duty cycling and operate at full speed
             _cpu_current_clock[CPU::id()] = _cpu_clock;
         } else {
-            dc = 0b10001 | ((clock * 10000ULL / _cpu_clock + 625ULL) / 625ULL); // dividing by 625 instead of 1250 eliminates the shift left
+            // dc = 0b10001 | ((clock * 10000ULL / _cpu_clock + 625ULL) / 625ULL); // dividing by 625 instead of 1250 eliminates the shift left
             _cpu_current_clock[CPU::id()] = _cpu_clock * ((clock * 10000ULL / _cpu_clock + 625ULL) / 625ULL) * 625ULL / 10000ULL;
             // The ((clock * 10000 / _cpu_clock + 625) / 625) returns the factor, the step is 625/10000
             // thus, max_clock * factor * step = final clock
         }
-        wrmsr(CLOCK_MODULATION, dc);
+        // wrmsr(CLOCK_MODULATION, dc);
     }
 
     static Hertz get_clock_step() {

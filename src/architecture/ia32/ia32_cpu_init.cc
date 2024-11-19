@@ -25,7 +25,7 @@ void CPU::init()
     // Initialize the PMU	
     if(Traits<PMU>::enabled) {
         PMU::init();
-        PMU::config(2, 2); // need to put the specific event in each config
+        PMU::config(2, 2); //TODO: need to put the specific event in each config, idk what is 2, 1 or 0
         PMU::config(1, 1);
         PMU::config(0, 0);
         PMU::start(2);
