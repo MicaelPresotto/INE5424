@@ -123,9 +123,9 @@ int main() {
     for (int i = 0; i < N_THREADS; i++) randoms[i] = Math::abs((Random::random() % 500000)) + 900000;
     for (int i = 0; i < N_THREADS; i++) cout << " Period "<< i+1 << " = " << randoms[i] << endl;
 
-    cout << CPU::id() << "Cache Misses: " << cache_misses << endl;
-    cout << CPU::id() << "Branch Mispredictions: " << branch_mispredictions << endl;
-    cout << CPU::id() << "Instructions Retired: " << instructions_retired << endl;
+    cout << "Cache Misses: " << cache_misses << endl;
+    cout << "Branch Mispredictions: " << branch_mispredictions << endl;
+    cout << "Instructions Retired: " << instructions_retired << endl;
 
     print_line();
     
