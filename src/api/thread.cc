@@ -407,6 +407,9 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         PMU::reset(4);
         PMU::reset(3);
         PMU::reset(2);
+        PMU::config(4, 24); // L1_INSTRUCTION_CACHE_MISSES
+        PMU::config(3, 15); // Branch Mispredictions
+        PMU::config(2, 2); // Instructions Retired
 
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
 
