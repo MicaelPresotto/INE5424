@@ -41,9 +41,9 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     if(event & LEAVE) {
         db<Thread>(TRC) << "LEAVE";
         _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * CPU::get_clock_percentage();
-        _statistics.cacheMisses = PMU::read(2);
-        _statistics.branchMispredictions = PMU::read(1);
-        _statistics.instructionsRetired = PMU::read(0);
+        _statistics.cacheMisses = PMU::read(4);
+        _statistics.branchMispredictions = PMU::read(3);
+        _statistics.instructionsRetired = PMU::read(2);
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";

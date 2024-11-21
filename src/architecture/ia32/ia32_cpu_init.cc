@@ -25,15 +25,17 @@ void CPU::init()
     // Initialize the PMU	
     if(Traits<PMU>::enabled) {
         PMU::init();
-        PMU::config(2, 2); //TODO: need to put the specific event in each config, idk what is 2, 1 or 0
-        PMU::config(1, 1);
-        PMU::config(0, 0);
+        //TODO: Ver se tem alguma forma de pegar esses numeros de eventos sem ser magic numbers, ja tentei PMU::, PMU_Event:: e Intel_Sandy_Bridge_PMU::
+        // todos dao fail no assert do config
+        PMU::config(4, 24); // L1_INSTRUCTION_CACHE_MISSES
+        PMU::config(3, 15); // Branch Mispredictions
+        PMU::config(2, 2); // Instructions Retired
+        PMU::start(4);
+        PMU::start(3);
         PMU::start(2);
-        PMU::start(1);
-        PMU::start(0);
+        PMU::reset(4);
+        PMU::reset(3);
         PMU::reset(2);
-        PMU::reset(1);
-        PMU::reset(0);
     }
         
 }
