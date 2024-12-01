@@ -41,9 +41,9 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     if(event & LEAVE) {
         db<Thread>(TRC) << "LEAVE";
         _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * CPU::get_clock_percentage();
-        _statistics.cacheMisses = PMU::read(4);
-        _statistics.branchMispredictions = PMU::read(3);
-        _statistics.instructionsRetired = PMU::read(2);
+        _statistics.cache_misses = PMU::read(4);
+        _statistics.branch_mispredictions = PMU::read(3);
+        _statistics.instructions_retired = PMU::read(2);
     }
     if(periodic() && (event & JOB_RELEASE)) {
         db<Thread>(TRC) << "RELEASE";
@@ -173,18 +173,14 @@ void EDFEnergyAwareness::applyNewFrequency(int new_step) {
 }
 
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
+const int rate_limit_us = 10000;
 
 void EDFEnergyAwareness::updateFrequency() {
-    if (Thread::self()->criterion() == IDLE) {
-        CPU::last_update[CPU::id()] = threads_ahead - 1;
-        applyNewFrequency((CPU::get_clock_step() + 1)/2);
-    }
-    else CPU::last_update[CPU::id()]++;
-
-    if (CPU::last_update[CPU::id()] < threads_ahead) return;
-    CPU::last_update[CPU::id()] = 0;
-
     const Tick current_time = elapsed();
+    const Microsecond current_time_us = time(current_time);
+
+    if (current_time_us - CPU::last_update[CPU::id()] < rate_limit_us) return;
+    CPU::last_update[CPU::id()] = current_time_us;
 
     bool is_deadline_loss = checkDeadlineLoss(current_time);
     int new_step = findNextStep(current_time, is_deadline_loss);
