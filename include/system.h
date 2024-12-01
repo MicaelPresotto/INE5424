@@ -46,7 +46,7 @@ private:
     static System_Info * _si;
     static char _preheap[(Traits<System>::multiheap ? sizeof(Segment) : 0) + sizeof(Heap)];
     static Segment * _heap_segment;
-    static Heap * _heap;
+    static Application_Heap * _heap;
 };
 
 __END_SYS

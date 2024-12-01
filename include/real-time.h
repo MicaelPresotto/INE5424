@@ -61,11 +61,15 @@ protected:
 
 public:
     struct Configuration: public Thread::Configuration {
-        Configuration(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, Microsecond a = NOW, const unsigned int n = INFINITE, State s = READY, unsigned int ss = STACK_SIZE)
-        : Thread::Configuration(s, Criterion(p, d, c), ss), activation(a), times(n) {}
+        Configuration(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, Microsecond a = NOW, const unsigned int n = INFINITE, State s = READY, unsigned int ss = STACK_SIZE, const char *_name = "")
+        : Thread::Configuration(s, Criterion(p, d, c), ss), activation(a), times(n) {
+            strncpy(name, _name, 32);
+            name[31] = '\0';
+        }
 
         Microsecond activation;
         unsigned int times;
+        char name[32];
     };
 
 public:
@@ -73,6 +77,8 @@ public:
     Periodic_Thread(Microsecond p, int (* entry)(Tn ...), Tn ... an)
     : Thread(Thread::Configuration(SUSPENDED, Criterion(p)), entry, an ...),
       _semaphore(0), _handler(&_semaphore, this), _alarm(p, &_handler, INFINITE) {
+        strncpy(_name, "sem nome", 32);
+        _name[31] = '\0';  // Garantir que a string seja terminada em '\0'
         resume();
         criterion().handle(Criterion::JOB_RELEASE);
     }
@@ -81,6 +87,8 @@ public:
     Periodic_Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
     : Thread(Thread::Configuration(SUSPENDED, conf.criterion, conf.stack_size), entry, an ...),
       _semaphore(0), _handler(&_semaphore, this), _alarm(conf.criterion.period(), &_handler, conf.times) {
+        strncpy(_name, conf.name, 32);
+        _name[31] = '\0';  // Garantir que a string seja terminada em '\0'
         if((conf.state == READY) || (conf.state == RUNNING)) {
             _state = SUSPENDED;
             resume();
@@ -97,13 +105,15 @@ public:
 
         db<Thread>(TRC) << "Thread::wait_next(this=" << t << ",times=" << t->_alarm.times() << ")" << endl;
 
-        t->criterion().handle(Criterion::JOB_FINISH);
-
-        if(t->_alarm.times())
+        if(t->_alarm.times()) {
             t->_semaphore.p();
+            t->criterion().handle(Criterion::JOB_FINISH);
+        }
 
         return t->_alarm.times();
     }
+
+    volatile long get_deadline_losses() {return _semaphore.get_value();};
 
 protected:
     Semaphore _semaphore;

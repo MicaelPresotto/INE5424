@@ -3,6 +3,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <time.h>
 
 __BEGIN_SYS
 
@@ -25,6 +26,9 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _stack = new (SYSTEM) char[stack_size];
 }
 
+Scheduler<Thread> Thread::get_scheduler(){
+    return Thread::_scheduler;
+}
 
 void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
 {
@@ -374,11 +378,10 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 
     if(prev != next) {
         if(Criterion::dynamic) {
-            prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE);
+            prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE, prev);
             for_all_threads(Criterion::UPDATE);
-            next->criterion().handle(Criterion::AWARD  | Criterion::ENTER);
+            next->criterion().handle(Criterion::AWARD  | Criterion::ENTER, next);
         }
-
         if(prev->_state == RUNNING)
             prev->_state = READY;
         next->_state = RUNNING;
@@ -398,10 +401,23 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
+        db<Thread>(DEV) << "Thread:" << Thread::self() << " Cache misses: " << PMU::read(4) << endl;
+        db<Thread>(DEV) << "Thread:" << Thread::self() << " Branch mispredictions: " << PMU::read(3) << endl;
+        db<Thread>(DEV) << "Thread:" << Thread::self() << " Instructions retired: " << PMU::read(2) << endl;
+        PMU::reset(4);
+        PMU::reset(3);
+        PMU::reset(2);
+        PMU::config(4, 24); // L1_INSTRUCTION_CACHE_MISSES
+        PMU::config(3, 15); // Branch Mispredictions
+        PMU::config(2, 2); // Instructions Retired
+
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
 
         if(smp)
             _lock.acquire();
+        
+        next->statistics().thread_last_dispatch = Alarm::elapsed();
+        next->criterion().updateFrequency();
     }
 }
 
@@ -427,6 +443,7 @@ int Thread::idle()
     }
 
     CPU::smp_barrier();
+
     Machine::reboot();
 
     return 0;

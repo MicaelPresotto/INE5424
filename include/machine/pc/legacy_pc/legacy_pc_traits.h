@@ -101,7 +101,7 @@ template<> struct Traits<Serial_Display>: public Traits<Machine_Common>
     static const bool enabled = (Traits<Build>::EXPECTED_SIMULATION_TIME != 0);
     static const int ENGINE = UART;
     static const int UNIT = 0; // COM1
-    static const int COLUMNS = 80;
+    static const int COLUMNS = 200;
     static const int LINES = 24;
     static const int TAB_SIZE = 8;
 };

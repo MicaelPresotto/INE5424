@@ -91,6 +91,9 @@ public:
 
     static Hertz clock()  { return Traits<CPU>::CLOCK; }
     static void clock(const Hertz & frequency) {}
+    static Hertz get_clock_step() { return 0ULL; }
+    static int get_clock_percentage() { return 0; }
+    static Hertz get_frequency_by_step() { return 0ULL; }
     static Hertz max_clock() { return Traits<CPU>::CLOCK; }
     static Hertz min_clock() { return Traits<CPU>::CLOCK; }
 

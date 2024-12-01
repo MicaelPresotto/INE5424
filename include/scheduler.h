@@ -9,6 +9,7 @@
 #include <utility/scheduling.h>
 #include <utility/math.h>
 #include <utility/convert.h>
+#include <utility/list.h>
 
 __BEGIN_SYS
 
@@ -75,45 +76,22 @@ public:
     static const bool dynamic = false;
     static const bool preemptive = true;
     static const unsigned int QUEUES = 1;
+    struct EnergyAwarenessStatistics {  
+        Tick job_release;
+        Tick thread_last_dispatch = 0L;
 
-    // Runtime Statistics (for policies that don't use any; that's why its a union)
-    union Dummy_Statistics {  // for Traits<System>::monitored = false
-        // Thread related statistics
-        Tick thread_creation;                   // tick in which the thread was created
-        Tick thread_destruction;                // tick in which the thread was destroyed
-        Tick thread_execution_time;             // accumulated execution time (in ticks)
-        Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
-        Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
+        Tick current_execution_time = 0L;
+        Tick total_execution_time = 0L;
+        Tick avg_execution_time = 0L;
+        unsigned long long executions = 0ULL;
+        unsigned long long cacheMisses = 0ULL;
+        unsigned long long branchMispredictions = 0ULL;
+        unsigned long long instructionsRetired = 0ULL;
 
-        // Job related statistics
-        bool job_released;
-        Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
-        Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
-        Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
-        Tick job_utilization;                   // accumulated execution time (in ticks)
-        unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
-        unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
+        Tick job_utilization;
     };
 
-    struct Real_Statistics {  // for Traits<System>::monitored = true
-        // Thread related statistics
-        Tick thread_creation;                   // tick in which the thread was created
-        Tick thread_destruction;                // tick in which the thread was destroyed
-        Tick thread_execution_time;             // accumulated execution time (in ticks)
-        Tick thread_last_dispatch;              // tick in which the thread was last dispatched to the CPU
-        Tick thread_last_preemption;            // tick in which the thread left the CPU by the last time
-
-        // Job related statistics
-        bool job_released;
-        Tick job_release;                       // tick in which the last job of a periodic thread was made ready for execution
-        Tick job_start;                         // tick in which the last job of a periodic thread started (different from "thread_last_dispatch" since jobs can be preempted)
-        Tick job_finish;                        // tick in which the last job of a periodic thread finished (i.e. called _alarm->p() at wait_netxt(); different from "thread_last_preemption" since jobs can be preempted)
-        Tick job_utilization;                   // accumulated execution time (in ticks)
-        unsigned int jobs_released;             // number of jobs of a thread that were released so far (i.e. the number of times _alarm->v() was called by the Alarm::handler())
-        unsigned int jobs_finished;             // number of jobs of a thread that finished execution so far (i.e. the number of times alarm->p() was called at wait_next())
-    };
-
-    typedef IF<Traits<System>::monitored, Real_Statistics, Dummy_Statistics>::Result Statistics;
+    typedef EnergyAwarenessStatistics Statistics;
 
 protected:
     Scheduling_Criterion_Common() {}
@@ -126,10 +104,11 @@ public:
     bool periodic() { return false; }
 
     volatile Statistics & statistics() { return _statistics; }
+    void updateFrequency(){};
     unsigned int queue() const { return 0; }
 
 protected:
-    void handle(Event event) {}
+    void handle(Event event, Thread *current=nullptr) {}
     void queue(unsigned int q) {}
     void update() {}
 
@@ -182,10 +161,12 @@ public:
 // Multicore Algorithms
 class Variable_Queue_Scheduler
 {
+public:
+    const volatile unsigned int & queue() const volatile { return _queue; }
+
 protected:
     Variable_Queue_Scheduler(unsigned int queue): _queue(queue) {};
 
-    const volatile unsigned int & queue() const volatile { return _queue; }
     void queue(unsigned int q) { _queue = q; }
 
 protected:
@@ -276,7 +257,7 @@ protected:
     Tick ticks(Microsecond time);
     Microsecond time(Tick ticks);
 
-    void handle(Event event);
+    void handle(Event event, Thread *current=nullptr);
 
     static Tick elapsed();
 
@@ -330,9 +311,59 @@ public:
     EDF(int p = APERIODIC): RT_Common(p) {}
     EDF(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, unsigned int cpu = ANY);
 
-    void handle(Event event);
+    void handle(Event event, Thread *current=nullptr);
 };
 
+
+class EDFEnergyAwareness : public EDF {
+
+public:
+    static const int threads_ahead = 5;
+
+    EDFEnergyAwareness(int p = APERIODIC) : EDF(p) {}
+    EDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDF(p, d, c) {}
+
+    void handle(Event event, Thread *current=nullptr);
+    void updateFrequency();
+
+    bool checkDeadlineLoss(Tick current_time);
+    int findNextStep(Tick current_time, bool is_deadline_lost);
+    void applyNewFrequency(int new_step);
+};
+
+
+class GEDFEnergyAwareness : public EDFEnergyAwareness {
+
+public:
+    static const unsigned int HEADS = Traits<Machine>::CPUS;
+public:
+
+    GEDFEnergyAwareness(int p = APERIODIC) : EDFEnergyAwareness(p) {}
+    GEDFEnergyAwareness(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c) {}
+    static unsigned int current_head() { return CPU::id(); }
+};
+
+class EDFEnergyAwarenessAffinity: public EDFEnergyAwareness, public Variable_Queue_Scheduler
+{
+public:
+    static const bool dynamic = true;
+    static const unsigned int QUEUES = Traits<Machine>::CPUS;
+
+public:
+
+    EDFEnergyAwarenessAffinity(int p = APERIODIC)
+    : EDFEnergyAwareness(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN) ) ? CPU::id() : define_best_queue()) { 
+    }
+
+    EDFEnergyAwarenessAffinity(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN) : EDFEnergyAwareness(p, d, c), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id(): define_best_queue()) { 
+        _statistics.avg_execution_time = ticks(p) * 100ULL;
+    }
+
+    using Variable_Queue_Scheduler::queue;
+    static unsigned int current_queue() { return CPU::id(); }
+
+    unsigned long define_best_queue();
+};
 
 // Least Laxity First
 class LLF: public RT_Common
@@ -344,7 +375,7 @@ public:
     LLF(int p = APERIODIC): RT_Common(p) {}
     LLF(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, unsigned int cpu = ANY);
 
-    void handle(Event event);
+    void handle(Event event, Thread* current=nullptr);
 };
 
 __END_SYS
@@ -363,6 +394,14 @@ public Scheduling_Multilist<T> {};
 template<typename T>
 class Scheduling_Queue<T, CPU_Affinity>:
 public Scheduling_Multilist<T> {};
+
+template<typename T>
+class Scheduling_Queue<T, EDFEnergyAwarenessAffinity>:
+public Scheduling_Multilist<T> {};
+
+template<typename T>
+class Scheduling_Queue<T, GEDFEnergyAwareness>:
+public Multihead_Scheduling_List<T> {};
 
 __END_UTIL
 
