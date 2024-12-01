@@ -84,9 +84,9 @@ public:
         Tick total_execution_time = 0L;
         Tick avg_execution_time = 0L;
         unsigned long long executions = 0ULL;
-        unsigned long long cacheMisses = 0ULL;
-        unsigned long long branchMispredictions = 0ULL;
-        unsigned long long instructionsRetired = 0ULL;
+        unsigned long long cache_misses = 0ULL;
+        unsigned long long branch_mispredictions = 0ULL;
+        unsigned long long instructions_retired = 0ULL;
 
         Tick job_utilization;
     };
