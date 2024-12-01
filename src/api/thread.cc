@@ -401,15 +401,14 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
-        db<Thread>(DEV) << "Thread:" << Thread::self() << " Cache misses: " << PMU::read(4) << endl;
-        db<Thread>(DEV) << "Thread:" << Thread::self() << " Branch mispredictions: " << PMU::read(3) << endl;
-        db<Thread>(DEV) << "Thread:" << Thread::self() << " Instructions retired: " << PMU::read(2) << endl;
-        PMU::reset(4);
-        PMU::reset(3);
-        PMU::reset(2);
-        PMU::config(4, 29); // L1_INSTRUCTION_CACHE_MISSES
-        PMU::config(3, 15); // Branch Mispredictions
-        PMU::config(2, 2); // Instructions Retired
+        // db<Thread>(DEV) << "Thread:" << Thread::self() << " Cache misses: " << PMU::read(4) << endl;
+        // db<Thread>(DEV) << "Thread:" << Thread::self() << " Branch mispredictions: " << PMU::read(3) << endl;
+        // db<Thread>(DEV) << "Thread:" << Thread::self() << " Instructions retired: " << PMU::read(2) << endl;
+
+        PMU::reset(5); PMU::config(5, 20); // L1_CACHE_HITS
+        PMU::reset(4); PMU::config(4, 21); // L1_CACHE_MISSES
+        PMU::reset(3); PMU::config(3, 15); // Branch Mispredictions
+        PMU::reset(2); PMU::config(2, 2);  // Instructions Retired
 
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
 

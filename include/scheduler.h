@@ -87,6 +87,7 @@ public:
         unsigned long long cache_misses = 0ULL;
         unsigned long long branch_mispredictions = 0ULL;
         unsigned long long instructions_retired = 0ULL;
+        unsigned long long cache_hits = 0ULL;
 
         Tick job_utilization;
     };
