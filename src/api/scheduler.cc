@@ -41,6 +41,7 @@ void EDFEnergyAwareness::handle(Event event, Thread *current) {
     if(event & LEAVE) {
         db<Thread>(TRC) << "LEAVE";
         _statistics.current_execution_time += (elapsed() - _statistics.thread_last_dispatch) * CPU::get_clock_percentage();
+        _statistics.cache_hits = PMU::read(5);
         _statistics.cache_misses = PMU::read(4);
         _statistics.branch_mispredictions = PMU::read(3);
         _statistics.instructions_retired = PMU::read(2);
@@ -181,6 +182,33 @@ void EDFEnergyAwareness::updateFrequency() {
 
     if (current_time_us - CPU::last_update[CPU::id()] < rate_limit_us) return;
     CPU::last_update[CPU::id()] = current_time_us;
+
+    unsigned long long instructions_retired = Thread::self()->statistics().instructions_retired;
+    unsigned long long cache_misses = Thread::self()->statistics().cache_misses;
+    unsigned long long branch_mispredictions = Thread::self()->statistics().branch_mispredictions;
+    unsigned long long cache_hits = Thread::self()->statistics().cache_hits;
+
+    for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end(); ++it){ 
+        Thread* current_thread = (*it).object();
+        if (current_thread->criterion() == IDLE || current_thread->criterion() == MAIN) continue;
+        branch_mispredictions += current_thread->statistics().branch_mispredictions;
+        instructions_retired += current_thread->statistics().instructions_retired;
+        cache_misses += current_thread->statistics().cache_misses;
+        cache_hits += current_thread->statistics().cache_hits;
+    }
+
+    db<EDFEnergyAwareness>(DEV) << "Branch Mispredictions " << branch_mispredictions;
+    db<EDFEnergyAwareness>(DEV) << " | Instructions Retired " << instructions_retired;
+    db<EDFEnergyAwareness>(DEV) << " | Cache Misses " << cache_misses;
+    db<EDFEnergyAwareness>(DEV) << " | Cache Hits " << cache_hits;
+    db<EDFEnergyAwareness>(DEV) << " | " << Thread::get_scheduler().size() + 1 << endl;
+
+    if ((cache_hits || cache_misses) && (((cache_misses * 100ULL) / (cache_hits + cache_misses)) >= 10)) {
+        db<EDFEnergyAwareness>(DEV) << "Entrou nessa bomba " << ((cache_misses * 100ULL) / (cache_hits + cache_misses)) << endl;
+        applyNewFrequency(CPU::get_clock_step() < 4 ? 1 : CPU::get_clock_step() - 3);
+        return;
+    }
+    if ((cache_hits || cache_misses)) db<EDFEnergyAwareness>(DEV) << "Nao entrou nessa bomba " << ((cache_misses * 100ULL) / (cache_hits + cache_misses)) << endl;
 
     bool is_deadline_loss = checkDeadlineLoss(current_time);
     int new_step = findNextStep(current_time, is_deadline_loss);
