@@ -202,10 +202,11 @@ void EDFEnergyAwareness::updateFrequency() {
     db<EDFEnergyAwareness>(DEV) << " | Cache Misses " << cache_misses;
     db<EDFEnergyAwareness>(DEV) << " | Cache Hits " << cache_hits;
     db<EDFEnergyAwareness>(DEV) << " | " << Thread::get_scheduler().size() + 1 << endl;
-
-    if ((cache_hits || cache_misses) && (((cache_misses * 100ULL) / (cache_hits + cache_misses)) >= 10)) {
+    
+    unsigned long long cache_misses_rate = (cache_misses * 100ULL) / (cache_hits + cache_misses);
+    if ((cache_hits || cache_misses) && (cache_misses_rate >= 10)) {
         db<EDFEnergyAwareness>(DEV) << "Entrou nessa bomba " << ((cache_misses * 100ULL) / (cache_hits + cache_misses)) << endl;
-        applyNewFrequency(CPU::get_clock_step() < 4 ? 1 : CPU::get_clock_step() - 3);
+        applyNewFrequency(CPU::get_clock_step() == 1 ? 1 : CPU::get_clock_step() - 1);
         return;
     }
     if ((cache_hits || cache_misses)) db<EDFEnergyAwareness>(DEV) << "Nao entrou nessa bomba " << ((cache_misses * 100ULL) / (cache_hits + cache_misses)) << endl;
@@ -235,6 +236,11 @@ unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
         }
     }
     return smallest_queue;
+}
+
+unsigned long EDFEnergyAwarenessAffinity::define_best_queue_for_migration(Thread *thread){
+    unsigned long best_queue = 0UL;
+    if(!thread->need_to_migrate) return;
 }
 
 EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}
