@@ -53,7 +53,8 @@ void function_delay() {
 
 void function_pass() {
     for (int i = 0; i < 20000000; i++) {
-        i = i;
+        if (Random::random() % 2 % 2)
+            i = i;
     }
 }
 

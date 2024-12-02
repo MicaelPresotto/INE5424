@@ -84,10 +84,12 @@ public:
         Tick total_execution_time = 0L;
         Tick avg_execution_time = 0L;
         unsigned long long executions = 0ULL;
-        unsigned long long cache_misses = 0ULL;
-        unsigned long long branch_mispredictions = 0ULL;
+
         unsigned long long instructions_retired = 0ULL;
+        unsigned long long cache_misses = 0ULL;
         unsigned long long cache_hits = 0ULL;
+        unsigned long long branch_mispredictions = 0ULL;
+        unsigned long long branch_instructions_retired = 0ULL;
 
         Tick job_utilization;
     };
@@ -330,6 +332,8 @@ public:
     bool checkDeadlineLoss(Tick current_time);
     int findNextStep(Tick current_time, bool is_deadline_lost);
     void applyNewFrequency(int new_step);
+
+    int evaluate_performance_metrics();
 };
 
 

@@ -27,6 +27,7 @@ void CPU::init()
         PMU::init();
         //TODO: Ver se tem alguma forma de pegar esses numeros de eventos sem ser magic numbers, ja tentei PMU::, PMU_Event:: e Intel_Sandy_Bridge_PMU::
         // todos dao fail no assert do config
+        PMU::config(6, 11); PMU::start(6); PMU::reset(6); // BRANCH_INSTRUCTIONS_RETIRED
         PMU::config(5, 20); PMU::start(5); PMU::reset(5); // L1_CACHE_HITS
         PMU::config(4, 21); PMU::start(4); PMU::reset(4); // L1_CACHE_MISSES
         PMU::config(3, 15); PMU::start(3); PMU::reset(3); // Branch Mispredictions

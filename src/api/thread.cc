@@ -405,6 +405,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // db<Thread>(DEV) << "Thread:" << Thread::self() << " Branch mispredictions: " << PMU::read(3) << endl;
         // db<Thread>(DEV) << "Thread:" << Thread::self() << " Instructions retired: " << PMU::read(2) << endl;
 
+        PMU::reset(6); PMU::config(6, 11); // BRANCH_INSTRUCTIONS_RETIRED
         PMU::reset(5); PMU::config(5, 20); // L1_CACHE_HITS
         PMU::reset(4); PMU::config(4, 21); // L1_CACHE_MISSES
         PMU::reset(3); PMU::config(3, 15); // Branch Mispredictions
