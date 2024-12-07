@@ -107,7 +107,7 @@ Thread::~Thread()
 
 void Thread::priority(Criterion c)
 {
-    lock();
+    // lock();
 
     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
 
@@ -131,7 +131,7 @@ void Thread::priority(Criterion c)
     	    reschedule();
     }
 
-    unlock();
+    // unlock();
 }
 
 
@@ -373,8 +373,22 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
 {
     // "next" is not in the scheduler's queue anymore. It's already "chosen"
 
-    if(charge && Criterion::timed)
-        _timer->restart();
+    if(charge) {
+        if (Criterion::timed)
+            _timer->restart();
+    
+        if (next->criterion() != MAIN && next->criterion() != IDLE) {
+            Criterion c = next->priority();
+            unsigned int next_queue = next->criterion().define_best_queue();
+            if (c.queue() != next_queue) {
+                c.queue(next->criterion().define_best_queue());
+                next->priority(c);
+                next = _scheduler.choose_another();
+            }
+        }
+    }
+
+
 
     if(prev != next) {
         if(Criterion::dynamic) {
