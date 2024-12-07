@@ -285,6 +285,28 @@ int last_migration = 0;
 const int migration_limit_us = 100000;
 
 void EDFEnergyAwarenessAffinity::migrate(Thread* chosen_thread) {
+
+    // IDEIA: pegar a thread com pior perfomance do core mais sobrecarregado e jogar para o core com melhor performance
+    // Performance? (0.5 * CACHE_MISS_RATE + 0.3 * BRANCH_MISPREDICTION_RATE + 0.2 * 'CORE_TIME_RATE')
+    // CORE_TIME_RATE ? Porcentagem de tempo que o core vai utilizar ate a ultima deadline analizada, ou seja, se o avg_core_time for 80 e a ultima deadline for 100 -> 0.8
+
+    // Implementacao:
+    // Colocamos um timer para migracao de 100ms, semelhante a troca de frequencia (usamos 10ms para troca de frequncia)
+    // Avaliamos o pior e melhor core, a partir do evaluate_core_performance
+    // Verificamos a thread com pior performance do core mais sobrecarregado (utilizando o metodo evaluate_performance)
+        // TODO -> Os casos de IDLE / MAIN estao cobertos (a principio) <- TODO
+
+
+    // Falta implementar:
+    // Realizar a troca da "pior" thread do "pior" core para o "melhor" core
+    // Importante destacar os casos em que
+        // A pior thread eh a thread escolhida para dispatch = chosen_thread (nao eh necessario fazer nada)
+        // A pior thread nao eh escolhida para dispatch
+            // Se o core for diferente do core da chosen_thread -> joga na fila e forca escalonamento
+            // Se o core for igual do core da chosen_thread -> joga na fila e forca escalonamento (talvez tenha que inserir novamente a thread, 
+                                                                                                 // mas acho q n precisa, cpa eh igual ao caso de cima)
+
+
     const Microsecond current_time_us = time(elapsed());
 
     if (current_time_us - last_migration < migration_limit_us) return;
@@ -338,16 +360,7 @@ void EDFEnergyAwarenessAffinity::migrate(Thread* chosen_thread) {
 
     Thread::Criterion c = worst_thread->priority();
     long next_queue = best_core;
-    // TODO: FINALIZAR
-    // if (worst_thread == chosen_thread) {
-    //     next = scheduler.choose_another();
-    //     c.queue(best_core);
-    //     worst_thread->priority(c);
-    // }
-
-
-
-    // return best_core;
+    db<Thread>(TRC) << c << next_queue; // TIRAR O LOG, ERA SO PRA VER SE TAVA FUNCIONANDO
 
 }
 
