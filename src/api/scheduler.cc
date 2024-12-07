@@ -3,6 +3,8 @@
 #include <process.h>
 #include <time.h>
 
+#define ULL unsigned long long
+
 __BEGIN_SYS
 
 volatile unsigned int Variable_Queue_Scheduler::_next_queue;
@@ -118,7 +120,7 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
         int iterations = EDFEnergyAwareness::threads_ahead;
         bool stop = is_deadline_lost;
         long diff = next_step - current_step;
-        unsigned long long percentage_on_step = CPU::get_percentage_by_step(CPU::get_clock_step() + diff);
+        ULL percentage_on_step = CPU::get_percentage_by_step(CPU::get_clock_step() + diff);
 
         if (Thread::get_scheduler().chosen()->criterion() != IDLE && Thread::get_scheduler().chosen()->criterion().periodic()) {
             total_time = Thread::get_scheduler().chosen()->get_remaining_time();
@@ -177,23 +179,24 @@ void EDFEnergyAwareness::applyNewFrequency(int new_step) {
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
 const int rate_limit_us = 10000;
 
-int EDFEnergyAwareness::evaluate_performance_metrics() {
-
+EDFEnergyAwareness::PMUStatistics EDFEnergyAwareness::get_pmu_statistics(int core) {
+    Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
+    Thread* current_thread = scheduler.chosen(core)->object();
     // Pega os dados de instructions_retired, cache misses/hits e branch mispredictions da atual cpu
-    unsigned long long instructions_retired = Thread::self()->statistics().instructions_retired;
-    unsigned long long cache_hits = Thread::self()->statistics().cache_hits;
-    unsigned long long cache_misses = Thread::self()->statistics().cache_misses;
-    unsigned long long branch_mispredictions = Thread::self()->statistics().branch_mispredictions;
-    unsigned long long branch_instructions_retired = Thread::self()->statistics().branch_instructions_retired;
+    ULL instructions_retired = current_thread->statistics().instructions_retired;
+    ULL cache_hits = current_thread->statistics().cache_hits;
+    ULL cache_misses = current_thread->statistics().cache_misses;
+    ULL branch_mispredictions = current_thread->statistics().branch_mispredictions;
+    ULL branch_instructions_retired = current_thread->statistics().branch_instructions_retired;
 
-    for(auto it = Thread::get_scheduler().begin(); it != Thread::get_scheduler().end(); ++it){ 
-        Thread* current_thread = (*it).object();
+    for(auto it = scheduler.begin(core); it != scheduler.end(); ++it){ 
+        current_thread = (*it).object();
         if (current_thread->criterion() == IDLE || current_thread->criterion() == MAIN) continue;
+        instructions_retired += current_thread->statistics().instructions_retired;
+        cache_hits += current_thread->statistics().cache_hits;
+        cache_misses += current_thread->statistics().cache_misses;
         branch_mispredictions += current_thread->statistics().branch_mispredictions;
         branch_instructions_retired += current_thread->statistics().branch_instructions_retired;
-        instructions_retired += current_thread->statistics().instructions_retired;
-        cache_misses += current_thread->statistics().cache_misses;
-        cache_hits += current_thread->statistics().cache_hits;
     }
 
     db<EDFEnergyAwareness>(DEV) << "Branch Mispredictions " << branch_mispredictions;
@@ -201,24 +204,24 @@ int EDFEnergyAwareness::evaluate_performance_metrics() {
     db<EDFEnergyAwareness>(DEV) << " | Instructions Retired " << instructions_retired;
     db<EDFEnergyAwareness>(DEV) << " | Cache Misses " << cache_misses;
     db<EDFEnergyAwareness>(DEV) << " | Cache Hits " << cache_hits;
-    db<EDFEnergyAwareness>(DEV) << " | " << Thread::get_scheduler().size() + 1 << endl;
+    db<EDFEnergyAwareness>(DEV) << " | " << scheduler.size() + 1 << endl;
     
-    // Avalia se deve aumentar, manter ou diminuir a frequência de acordo com os dados coletados
-    unsigned long long cache_misses_rate = 0;
-    unsigned long long branch_mispredictions_rate = 0;
+    EDFEnergyAwareness::PMUStatistics pmu_statistics;
+    pmu_statistics.define_statistics(cache_misses, cache_hits, branch_mispredictions, branch_instructions_retired);
 
-    if (cache_hits || cache_misses)
-        cache_misses_rate = (cache_misses * 100ULL) / (cache_hits + cache_misses);
+    db<EDFEnergyAwareness>(DEV) << "Cache misses rate: " << pmu_statistics.cache_misses_rate << endl;
+    db<EDFEnergyAwareness>(DEV) << "Branch Mispredictions Rate : " << pmu_statistics.branch_mispredictions_rate << endl;
 
-    if (branch_instructions_retired)
-        branch_mispredictions_rate = (branch_mispredictions * 100ULL) / (branch_instructions_retired);
+    return pmu_statistics;
+}
 
-    db<EDFEnergyAwareness>(DEV) << "Cache misses rate: " << cache_misses_rate << endl;
-    db<EDFEnergyAwareness>(DEV) << "Branch Mispredictions Rate : " << branch_mispredictions_rate << endl;
+int EDFEnergyAwareness::evaluate_performance_metrics() {
 
-    if (cache_misses_rate > 10 && branch_mispredictions_rate > 2) return -1;
-    if (cache_misses_rate > 10 && branch_mispredictions_rate < 2) return 0;
-    if (cache_misses_rate < 10 && branch_mispredictions_rate > 2) return 0;
+    EDFEnergyAwareness::PMUStatistics stats = get_pmu_statistics(CPU::id());
+
+    if (stats.cache_misses_rate > 10 && stats.branch_mispredictions_rate > 2) return -1;
+    if (stats.cache_misses_rate > 10 && stats.branch_mispredictions_rate < 2) return 0;
+    if (stats.cache_misses_rate < 10 && stats.branch_mispredictions_rate > 2) return 0;
     return 1;
 }
 
@@ -238,26 +241,124 @@ void EDFEnergyAwareness::updateFrequency() {
     applyNewFrequency(new_step);
 }
 
-unsigned long EDFEnergyAwarenessAffinity::define_best_queue(){
-    unsigned long smallest_queue = 0UL;
-    unsigned long min_avg_thread_time = 0UL;
-    bool first = true;
+unsigned long EDFEnergyAwarenessAffinity::get_avg_core_time(int core) {
     Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
-    for(unsigned long nqueue = 0UL; nqueue < CPU::cores(); nqueue++){
-        Thread* current_thread = scheduler.chosen(nqueue)->object();
-        unsigned long avg_queue_thread_time = 0UL;
-        if (current_thread) avg_queue_thread_time = current_thread->get_remaining_time();
-        for(auto it = scheduler.begin(nqueue); it != scheduler.end(); ++it){ 
-            auto current_element = *it;
-            if (current_element.object()->criterion() != IDLE) avg_queue_thread_time += current_element.object()->criterion().statistics().avg_execution_time;
+    Thread* current_thread = scheduler.chosen(core)->object();
+    unsigned long avg_core_time = 0UL;
+    unsigned long last_deadline = 0UL;
+    if (current_thread) {
+        avg_core_time = current_thread->get_remaining_time();
+        last_deadline = current_thread->criterion();
+    }
+
+    for(auto it = scheduler.begin(core); it != scheduler.end(); ++it){ 
+        current_thread = (*it).object();
+        if (current_thread->criterion() != IDLE) {
+            avg_core_time += current_thread->criterion().statistics().avg_execution_time;
+            last_deadline = current_thread->criterion();
         }
-        if(first || avg_queue_thread_time < min_avg_thread_time) {
-            smallest_queue = nqueue;
-            min_avg_thread_time = avg_queue_thread_time;
+    }
+    if (!last_deadline) return 0;
+    return (100UL * avg_core_time) / last_deadline;
+}
+
+long EDFEnergyAwarenessAffinity::define_best_queue() {
+
+    unsigned long best_core = 0UL;
+    unsigned long min_avg_core_performance = 0UL;
+    bool first = true;
+    unsigned long avg_core_performance;
+
+    for(unsigned long core = 0UL; core < CPU::cores(); core++){
+        avg_core_performance = evaluate_core_performance(core);  
+        if(first || avg_core_performance < min_avg_core_performance) {
+            best_core = core;
+            min_avg_core_performance = avg_core_performance;
             first = false;
         }
     }
-    return smallest_queue;
+    return best_core;
+}
+
+
+int last_migration = 0;
+const int migration_limit_us = 100000;
+
+void EDFEnergyAwarenessAffinity::migrate(Thread* chosen_thread) {
+    const Microsecond current_time_us = time(elapsed());
+
+    if (current_time_us - last_migration < migration_limit_us) return;
+    last_migration = current_time_us;
+
+    unsigned long best_core = 0UL;
+    unsigned long min_avg_core_performance = 0UL;
+
+    unsigned long worst_core = 0UL;
+    unsigned long max_avg_core_performance = 0UL;
+    
+    bool first = true;
+    unsigned long avg_core_performance;
+    for(unsigned long core = 0UL; core < CPU::cores(); core++){
+        avg_core_performance = evaluate_core_performance(core);  
+        if(first || avg_core_performance < min_avg_core_performance) {
+            best_core = core;
+            min_avg_core_performance = avg_core_performance;
+        }
+        if(first || avg_core_performance > max_avg_core_performance) {
+            worst_core = core;
+            max_avg_core_performance = avg_core_performance;
+            first = false;
+        }
+    }
+
+    Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
+    Thread* current_thread = scheduler.chosen(worst_core)->object();
+    if (current_thread->criterion() == IDLE) return;
+
+    Thread* worst_thread = current_thread;
+    EDFEnergyAwarenessAffinity::PMUStatistics thread_pmu_stats;
+    thread_pmu_stats.define_statistics(current_thread->statistics().cache_misses, current_thread->statistics().cache_hits, current_thread->statistics().branch_mispredictions, current_thread->statistics().branch_instructions_retired);
+
+    unsigned long performance;
+    unsigned long worst_performance = evaluate_performance(thread_pmu_stats, current_thread->get_remaining_time());
+    bool thread_first = true;
+
+    for(auto it = scheduler.begin(worst_core); it != scheduler.end(); ++it) {
+        current_thread = (*it).object();
+        if (current_thread->criterion() != IDLE && current_thread->criterion() != MAIN) {
+            thread_pmu_stats.define_statistics(current_thread->statistics().cache_misses, current_thread->statistics().cache_hits, current_thread->statistics().branch_mispredictions, current_thread->statistics().branch_instructions_retired);
+            performance = evaluate_performance(thread_pmu_stats, current_thread->get_remaining_time());
+            if (thread_first || performance > worst_performance) {
+                worst_performance = performance;
+                worst_thread = current_thread;
+                thread_first = false;
+            }
+        }
+    }
+
+    Thread::Criterion c = worst_thread->priority();
+    long next_queue = best_core;
+    // TODO: FINALIZAR
+    // if (worst_thread == chosen_thread) {
+    //     next = scheduler.choose_another();
+    //     c.queue(best_core);
+    //     worst_thread->priority(c);
+    // }
+
+
+
+    // return best_core;
+
+}
+
+unsigned long EDFEnergyAwarenessAffinity::evaluate_core_performance(int core) {
+    EDFEnergyAwarenessAffinity::PMUStatistics pmu_stats = get_pmu_statistics(core);
+    unsigned long core_time = get_avg_core_time(core);
+    return evaluate_performance(pmu_stats, core_time);
+}
+
+unsigned long EDFEnergyAwarenessAffinity::evaluate_performance(EDFEnergyAwarenessAffinity::PMUStatistics pmu_stats, unsigned long time_) {
+    return (50ULL * pmu_stats.cache_misses_rate) + (30ULL * pmu_stats.branch_mispredictions_rate) + (20ULL * time_);
 }
 
 EDF::EDF(Microsecond p, Microsecond d, Microsecond c, unsigned int cpu): RT_Common(int(elapsed() + ticks(d)), p, d, c) {}

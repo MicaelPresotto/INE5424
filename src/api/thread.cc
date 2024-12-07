@@ -376,16 +376,8 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
     if(charge) {
         if (Criterion::timed)
             _timer->restart();
-    
-        if (next->criterion() != MAIN && next->criterion() != IDLE) {
-            Criterion c = next->priority();
-            unsigned int next_queue = next->criterion().define_best_queue();
-            if (c.queue() != next_queue) {
-                c.queue(next->criterion().define_best_queue());
-                next->priority(c);
-                next = _scheduler.choose_another();
-            }
-        }
+
+        next->criterion().migrate(next);
     }
 
 

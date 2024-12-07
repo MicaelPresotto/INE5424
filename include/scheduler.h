@@ -3,6 +3,8 @@
 #ifndef __scheduler_h
 #define __scheduler_h
 
+#define ULL unsigned long long
+
 #include <architecture/cpu.h>
 #include <architecture/pmu.h>
 #include <architecture/tsc.h>
@@ -83,15 +85,25 @@ public:
         Tick current_execution_time = 0L;
         Tick total_execution_time = 0L;
         Tick avg_execution_time = 0L;
-        unsigned long long executions = 0ULL;
+        ULL executions = 0ULL;
 
-        unsigned long long instructions_retired = 0ULL;
-        unsigned long long cache_misses = 0ULL;
-        unsigned long long cache_hits = 0ULL;
-        unsigned long long branch_mispredictions = 0ULL;
-        unsigned long long branch_instructions_retired = 0ULL;
+        ULL instructions_retired = 0ULL;
+        ULL cache_misses = 0ULL;
+        ULL cache_hits = 0ULL;
+        ULL branch_mispredictions = 0ULL;
+        ULL branch_instructions_retired = 0ULL;
 
         Tick job_utilization;
+    };
+
+    struct PMUStatistics {  
+        ULL cache_misses_rate = 0ULL;
+        ULL branch_mispredictions_rate = 0ULL;
+
+        void define_statistics(ULL cache_misses, ULL cache_hits, ULL branch_mispredictions, ULL branch_instructions_retired) {
+            cache_misses_rate = (cache_hits || cache_misses) ? (cache_misses * 100ULL) / (cache_hits + cache_misses) : 0;
+            branch_mispredictions_rate = (branch_instructions_retired) ? (branch_mispredictions * 100ULL) / (branch_instructions_retired)  : 0;
+        }
     };
 
     typedef EnergyAwarenessStatistics Statistics;
@@ -334,6 +346,7 @@ public:
     void applyNewFrequency(int new_step);
 
     int evaluate_performance_metrics();
+    EDFEnergyAwareness::PMUStatistics get_pmu_statistics(int core);
 };
 
 
@@ -367,7 +380,11 @@ public:
     using Variable_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
 
-    unsigned long define_best_queue();
+    unsigned long get_avg_core_time(int core);
+    unsigned long evaluate_core_performance(int core);
+    unsigned long evaluate_performance(EDFEnergyAwarenessAffinity::PMUStatistics pmu_stats, unsigned long time_);
+    long define_best_queue();
+    void migrate(Thread* chosen_thread);
 };
 
 // Least Laxity First
