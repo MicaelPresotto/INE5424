@@ -382,6 +382,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         if(Criterion::dynamic) {
             int new_cpu = next->criterion().find_best_cpu_to_migrate();
             if (new_cpu != -1) {
+                db<Thread>(DEV) << "Trocando " << next->get_name() << " do core " << next->criterion().queue() << " pro core " << new_cpu << endl;
                 Criterion c = next->criterion();
                 c.queue(new_cpu);
                 next->priority(c);

@@ -270,9 +270,17 @@ long EDFEnergyAwarenessAffinity::define_best_queue() {
     unsigned long min_avg_core_performance = 0UL;
     bool first = true;
     unsigned long avg_core_performance;
-
+    Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
     for(unsigned long core = 0UL; core < CPU::cores(); core++){
         avg_core_performance = evaluate_core_performance(core);  
+        db<EDFEnergyAwarenessAffinity>(DEV) << "CPU[" << core << "] " << avg_core_performance << " {";
+         db<EDFEnergyAwareness>(DEV) << scheduler.chosen(core)->object()->get_name();
+
+        for(auto it = scheduler.begin(core); it != scheduler.end(); ++it) {
+            db<EDFEnergyAwareness>(DEV) << ", " << (*it).object()->get_name();
+        }
+    
+        db<EDFEnergyAwareness>(DEV) << "}" << endl;
         if(first || avg_core_performance < min_avg_core_performance) {
             best_core = core;
             min_avg_core_performance = avg_core_performance;
@@ -287,17 +295,18 @@ int last_migration[Traits<Machine>::CPUS] = {0};
 const int migration_limit_us = 100000; // 100ms
 
 int EDFEnergyAwarenessAffinity::find_best_cpu_to_migrate() {
+    Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
     const Microsecond current_time_us = time(elapsed());
 
     if (current_time_us - last_migration[CPU::id()] < migration_limit_us) return -1;
+    if (!periodic()) return -1; 
+    if (scheduler.size(_queue) <= 1) return -1;
 
     int best_core = define_best_queue();
+    if (_queue == (unsigned int) best_core) return -1;
 
-    if (periodic() && _queue != (unsigned int) best_core) {
-        last_migration[CPU::id()] = current_time_us;
-        return best_core;
-    }
-    return -1;
+    last_migration[CPU::id()] = current_time_us;
+    return best_core;
 }
 
 unsigned long EDFEnergyAwarenessAffinity::evaluate_core_performance(int core) {

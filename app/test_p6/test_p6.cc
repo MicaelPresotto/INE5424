@@ -47,6 +47,39 @@ void function_sqrt() {
     }
 }
 
+void function_matrix_multiplication() {
+    const int SIZE = 256;
+    static int A[SIZE][SIZE], B[SIZE][SIZE], C[SIZE][SIZE];
+
+    for (int i = 0; i < SIZE; i++)
+        for (int j = 0; j < SIZE; j++) {
+            A[i][j] = Random::random() % 100;
+            B[i][j] = Random::random() % 100;
+        }
+
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            C[i][j] = 0;
+            for (int k = 0; k < SIZE; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+
+void function_cache_miss() {
+    const int SIZE = 1024 * 1024;
+    static int array[SIZE];
+
+    for (int i = 0; i < SIZE; i++) {
+        array[i] = i;
+    }
+
+    for (int i = SIZE - 1; i >= 0; i -= 64) {
+        array[i] += 1;
+    }
+}
+
 void function_delay() {
     Delay d(5e3);
 }
@@ -123,8 +156,8 @@ int main() {
     print_line();
     
     pthreads[0] = new Periodic_Thread(RTConf(randoms[0], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "sqrt"), &pt_loop, function_sqrt);
-    pthreads[1] = new Periodic_Thread(RTConf(randoms[1], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "delay"), &pt_loop, function_delay);
-    pthreads[2] = new Periodic_Thread(RTConf(randoms[2], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "pass"), &pt_loop, function_pass);
+    pthreads[1] = new Periodic_Thread(RTConf(randoms[1], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "cachemiss"), &pt_loop, function_cache_miss);
+    pthreads[2] = new Periodic_Thread(RTConf(randoms[2], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "matrixmul"), &pt_loop, function_matrix_multiplication);
     pthreads[3] = new Periodic_Thread(RTConf(randoms[3], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "log2"), &pt_loop, function_log2);
     pthreads[4] = new Periodic_Thread(RTConf(randoms[4], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "cos"), &pt_loop, function_cos);
     pthreads[5] = new Periodic_Thread(RTConf(randoms[5], Periodic_Thread::SAME, Periodic_Thread::UNKNOWN, Periodic_Thread::NOW, ITERATIONS, Periodic_Thread::READY, Traits<Application>::STACK_SIZE, "sin"), &pt_loop, function_sin);
