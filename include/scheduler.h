@@ -384,7 +384,7 @@ public:
     unsigned long evaluate_core_performance(int core);
     unsigned long evaluate_performance(EDFEnergyAwarenessAffinity::PMUStatistics pmu_stats, unsigned long time_);
     long define_best_queue();
-    void migrate(Thread* chosen_thread);
+    int find_best_cpu_to_migrate();
 };
 
 // Least Laxity First

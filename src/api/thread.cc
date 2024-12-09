@@ -376,14 +376,18 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
     if(charge) {
         if (Criterion::timed)
             _timer->restart();
-
-        next->criterion().migrate(next);
     }
-
-
 
     if(prev != next) {
         if(Criterion::dynamic) {
+            int new_cpu = next->criterion().find_best_cpu_to_migrate();
+            if (new_cpu != -1) {
+                Criterion c = next->criterion();
+                c.queue(new_cpu);
+                next->priority(c);
+                next = _scheduler.choose_another();
+                if (next == prev) return;
+            }
             prev->criterion().handle(Criterion::CHARGE | Criterion::LEAVE, prev);
             for_all_threads(Criterion::UPDATE);
             next->criterion().handle(Criterion::AWARD  | Criterion::ENTER, next);

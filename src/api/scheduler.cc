@@ -156,6 +156,8 @@ int EDFEnergyAwareness::findNextStep(Tick current_time, bool is_deadline_lost) {
 }
 
 void EDFEnergyAwareness::applyNewFrequency(int new_step) {
+    if (new_step > 13) new_step = 13;
+    if (new_step < 0) new_step = 0;
     int current_step = CPU::get_clock_step();
     if (new_step == current_step) return;
     if ((current_step - new_step) > 3) new_step = current_step - 3;
@@ -177,7 +179,7 @@ void EDFEnergyAwareness::applyNewFrequency(int new_step) {
 }
 
 int CPU::last_update[Traits<Machine>::CPUS] = {0};
-const int rate_limit_us = 10000;
+const int rate_limit_us = 10000; //10ms
 
 EDFEnergyAwareness::PMUStatistics EDFEnergyAwareness::get_pmu_statistics(int core) {
     Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
@@ -199,18 +201,18 @@ EDFEnergyAwareness::PMUStatistics EDFEnergyAwareness::get_pmu_statistics(int cor
         branch_instructions_retired += current_thread->statistics().branch_instructions_retired;
     }
 
-    db<EDFEnergyAwareness>(DEV) << "Branch Mispredictions " << branch_mispredictions;
-    db<EDFEnergyAwareness>(DEV) << " | Branch Instructions Retired " << branch_instructions_retired;
-    db<EDFEnergyAwareness>(DEV) << " | Instructions Retired " << instructions_retired;
-    db<EDFEnergyAwareness>(DEV) << " | Cache Misses " << cache_misses;
-    db<EDFEnergyAwareness>(DEV) << " | Cache Hits " << cache_hits;
-    db<EDFEnergyAwareness>(DEV) << " | " << scheduler.size() + 1 << endl;
+    db<EDFEnergyAwareness>(TRC) << "Branch Mispredictions " << branch_mispredictions;
+    db<EDFEnergyAwareness>(TRC) << " | Branch Instructions Retired " << branch_instructions_retired;
+    db<EDFEnergyAwareness>(TRC) << " | Instructions Retired " << instructions_retired;
+    db<EDFEnergyAwareness>(TRC) << " | Cache Misses " << cache_misses;
+    db<EDFEnergyAwareness>(TRC) << " | Cache Hits " << cache_hits;
+    db<EDFEnergyAwareness>(TRC) << " | " << scheduler.size() + 1 << endl;
     
     EDFEnergyAwareness::PMUStatistics pmu_statistics;
     pmu_statistics.define_statistics(cache_misses, cache_hits, branch_mispredictions, branch_instructions_retired);
 
-    db<EDFEnergyAwareness>(DEV) << "Cache misses rate: " << pmu_statistics.cache_misses_rate << endl;
-    db<EDFEnergyAwareness>(DEV) << "Branch Mispredictions Rate : " << pmu_statistics.branch_mispredictions_rate << endl;
+    db<EDFEnergyAwareness>(TRC) << "Cache misses rate: " << pmu_statistics.cache_misses_rate << endl;
+    db<EDFEnergyAwareness>(TRC) << "Branch Mispredictions Rate : " << pmu_statistics.branch_mispredictions_rate << endl;
 
     return pmu_statistics;
 }
@@ -281,87 +283,21 @@ long EDFEnergyAwarenessAffinity::define_best_queue() {
 }
 
 
-int last_migration = 0;
-const int migration_limit_us = 100000;
+int last_migration[Traits<Machine>::CPUS] = {0};
+const int migration_limit_us = 100000; // 100ms
 
-void EDFEnergyAwarenessAffinity::migrate(Thread* chosen_thread) {
-
-    // IDEIA: pegar a thread com pior perfomance do core mais sobrecarregado e jogar para o core com melhor performance
-    // Performance? (0.5 * CACHE_MISS_RATE + 0.3 * BRANCH_MISPREDICTION_RATE + 0.2 * 'CORE_TIME_RATE')
-    // CORE_TIME_RATE ? Porcentagem de tempo que o core vai utilizar ate a ultima deadline analizada, ou seja, se o avg_core_time for 80 e a ultima deadline for 100 -> 0.8
-
-    // Implementacao:
-    // Colocamos um timer para migracao de 100ms, semelhante a troca de frequencia (usamos 10ms para troca de frequncia)
-    // Avaliamos o pior e melhor core, a partir do evaluate_core_performance
-    // Verificamos a thread com pior performance do core mais sobrecarregado (utilizando o metodo evaluate_performance)
-        // TODO -> Os casos de IDLE / MAIN estao cobertos (a principio) <- TODO
-
-
-    // Falta implementar:
-    // Realizar a troca da "pior" thread do "pior" core para o "melhor" core
-    // Importante destacar os casos em que
-        // A pior thread eh a thread escolhida para dispatch = chosen_thread (nao eh necessario fazer nada)
-        // A pior thread nao eh escolhida para dispatch
-            // Se o core for diferente do core da chosen_thread -> joga na fila e forca escalonamento
-            // Se o core for igual do core da chosen_thread -> joga na fila e forca escalonamento (talvez tenha que inserir novamente a thread, 
-                                                                                                 // mas acho q n precisa, cpa eh igual ao caso de cima)
-
-
+int EDFEnergyAwarenessAffinity::find_best_cpu_to_migrate() {
     const Microsecond current_time_us = time(elapsed());
 
-    if (current_time_us - last_migration < migration_limit_us) return;
-    last_migration = current_time_us;
+    if (current_time_us - last_migration[CPU::id()] < migration_limit_us) return -1;
 
-    unsigned long best_core = 0UL;
-    unsigned long min_avg_core_performance = 0UL;
+    int best_core = define_best_queue();
 
-    unsigned long worst_core = 0UL;
-    unsigned long max_avg_core_performance = 0UL;
-    
-    bool first = true;
-    unsigned long avg_core_performance;
-    for(unsigned long core = 0UL; core < CPU::cores(); core++){
-        avg_core_performance = evaluate_core_performance(core);  
-        if(first || avg_core_performance < min_avg_core_performance) {
-            best_core = core;
-            min_avg_core_performance = avg_core_performance;
-        }
-        if(first || avg_core_performance > max_avg_core_performance) {
-            worst_core = core;
-            max_avg_core_performance = avg_core_performance;
-            first = false;
-        }
+    if (periodic() && _queue != (unsigned int) best_core) {
+        last_migration[CPU::id()] = current_time_us;
+        return best_core;
     }
-
-    Scheduling_Multilist<Thread, EDFEnergyAwarenessAffinity> scheduler = Thread::get_scheduler();
-    Thread* current_thread = scheduler.chosen(worst_core)->object();
-    if (current_thread->criterion() == IDLE) return;
-
-    Thread* worst_thread = current_thread;
-    EDFEnergyAwarenessAffinity::PMUStatistics thread_pmu_stats;
-    thread_pmu_stats.define_statistics(current_thread->statistics().cache_misses, current_thread->statistics().cache_hits, current_thread->statistics().branch_mispredictions, current_thread->statistics().branch_instructions_retired);
-
-    unsigned long performance;
-    unsigned long worst_performance = evaluate_performance(thread_pmu_stats, current_thread->get_remaining_time());
-    bool thread_first = true;
-
-    for(auto it = scheduler.begin(worst_core); it != scheduler.end(); ++it) {
-        current_thread = (*it).object();
-        if (current_thread->criterion() != IDLE && current_thread->criterion() != MAIN) {
-            thread_pmu_stats.define_statistics(current_thread->statistics().cache_misses, current_thread->statistics().cache_hits, current_thread->statistics().branch_mispredictions, current_thread->statistics().branch_instructions_retired);
-            performance = evaluate_performance(thread_pmu_stats, current_thread->get_remaining_time());
-            if (thread_first || performance > worst_performance) {
-                worst_performance = performance;
-                worst_thread = current_thread;
-                thread_first = false;
-            }
-        }
-    }
-
-    Thread::Criterion c = worst_thread->priority();
-    long next_queue = best_core;
-    db<Thread>(TRC) << c << next_queue; // TIRAR O LOG, ERA SO PRA VER SE TAVA FUNCIONANDO
-
+    return -1;
 }
 
 unsigned long EDFEnergyAwarenessAffinity::evaluate_core_performance(int core) {
